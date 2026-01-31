@@ -1,6 +1,8 @@
 #ifndef DEFS_H
 #define DEFS_H
 
+#include <SDL2/SDL.h>
+
 // NOTES SEMITONES
 #define nC 1
 #define nC_SHARP 2
@@ -21,18 +23,18 @@
 #define A4_POSITION 58 // Position of A4 starting from C0
 
 // KEYBOARD (AZERTY, change q to a and z to w for QWERTY)
-#define kC 'q'
-#define kC_SHARP 'z'
-#define kD 's'
-#define kD_SHARP 'e'
-#define kE 'd'
-#define kF 'f'
-#define kF_SHARP 't'
-#define kG 'g'
-#define kG_SHARP 'y'
-#define kA 'h'
-#define kA_SHARP 'u'
-#define kB 'j'
+#define kC SDLK_q
+#define kC_SHARP SDLK_z
+#define kD SDLK_s
+#define kD_SHARP SDLK_e
+#define kE SDLK_d
+#define kF SDLK_f
+#define kF_SHARP SDLK_t
+#define kG SDLK_g
+#define kG_SHARP SDLK_y
+#define kA SDLK_h
+#define kA_SHARP SDLK_u
+#define kB SDLK_j
 
 // SOUND RELATED DEFS
 #define FRAMES 512 // Length of the frame buffer

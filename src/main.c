@@ -2,14 +2,15 @@
 #include <math.h>
 #include <unistd.h>
 #include <alsa/asoundlib.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 #include "defs.h"
 #include "synth.h"
 #include "input.h"
+#include "sdl_interface.h"
 
 int main(int argc, char **argv) {
-
-    int input = 0;
 
     int octave = DEFAULT_OCTAVE;
     note_t note = {.n_semitone = nC, .n_octave = octave, .n_duration = 5};
@@ -105,21 +106,41 @@ int main(int argc, char **argv) {
         snd_pcm_writei(handle, buffer, FRAMES);
     }
 
-    initscr();
-    curs_set(0);
-    keypad(stdscr, TRUE);
-    nodelay(stdscr, TRUE);
+    SDL_Window *window = SDL_CreateWindow("Awesome Synth!", 0, 0, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
+    if (window == NULL) {
+        perror("SDL window creation error.");
+        return 1;
+    }
 
-    static int ui_counter = 0;
-    
-    while (input != 'x') {
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (renderer == NULL) {
+        perror("SDL renderer creation error.");
+        return 1;
+    }
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-        if (++ui_counter % 20 == 0) {
-            clear();
-            mvprintw(0, 0, "Semitone: %d", note.n_semitone);
-            mvprintw(1, 0, "Octave: %d", note.n_octave);
-            mvprintw(2, 0, "Frequency: %f", sound.s_freq);
-            refresh();
+    int running = 1;
+
+    TTF_Init();
+    TTF_Font* sans = TTF_OpenFont("FreeSans.ttf", 24);
+    if (!sans) {
+        printf("test");
+        return 1;
+    }
+
+    SDL_Event event;
+
+    while (running) {
+
+        int note_changed = 0;
+
+        while(SDL_PollEvent(&event) != 0) {
+            if(event.type == SDL_QUIT) {
+                running = 0;
+            } 
+            if (event.type == SDL_KEYDOWN) {
+                note_changed = handle_input(&note, event);
+            }
         }
 
         render_synth3osc(synth_3osc, buffer);
@@ -130,21 +151,29 @@ int main(int argc, char **argv) {
         } else if (err < 0) {
             snd_pcm_prepare(handle);
         }
-
-        input = getch();
-        int note_changed = get_input(input, &note);
-
+        
         if (note_changed) {
             note_to_sound(note, &sound);
             note_to_sound(note, &sound_b);
             note_to_sound(note, &sound_c);
         }
+    
+        
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderClear(renderer);
+        render_interface(note, synth_3osc, sans, renderer);
+        SDL_RenderPresent(renderer);
+        
     }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    renderer = NULL;
+    window = NULL;
+    SDL_Quit();
 
     snd_pcm_drain(handle);
     snd_pcm_close(handle);
-
-    endwin();
 
     return 0;
 }

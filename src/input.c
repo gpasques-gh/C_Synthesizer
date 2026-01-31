@@ -1,21 +1,18 @@
-#include <ncurses.h>
-
-#include "defs.h"
+#include <SDL2/SDL.h>
 #include "synth.h"
+#include "defs.h"
 
-int get_input(int input, note_t *note) {
+int handle_input(note_t *note, SDL_Event event) {
 
-    if (input == KEY_UP) {
-        note->n_octave++;
-        return 0;
-    }
+    SDL_Keycode key = event.key.keysym.sym;
 
-    if (input == KEY_DOWN) {
-        note->n_octave--;
-        return 0;
-    }
-
-    switch(input) {
+    switch(key) {
+        case SDLK_UP:
+            note->n_octave++;
+            return 0;
+        case SDLK_DOWN:
+            note->n_octave--;
+            return 0;
         case kC:
             change_note(note, nC, note->n_octave, note->n_duration);
             break;
@@ -57,4 +54,6 @@ int get_input(int input, note_t *note) {
     }
 
     return 1;
+
+
 }
