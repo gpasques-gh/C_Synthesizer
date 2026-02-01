@@ -3,6 +3,10 @@
 #include "sdl_interface.h"
 #include "synth.h"
 
+/**
+ * SDL renderer for the interface 
+ * Renders informations about the synthesizer and the note
+ */
 void render_interface(note_t note, synth_3osc_t synth, TTF_Font *font, SDL_Renderer *renderer) {
     SDL_Color black = {0, 0, 0, 255};
     char buffer[256];
@@ -50,7 +54,5 @@ void render_interface(note_t note, synth_3osc_t synth, TTF_Font *font, SDL_Rende
     };
     SDL_RenderCopy(renderer, texture3, NULL, &surface_rect3);
     SDL_FreeSurface(surface3);
-    SDL_DestroyTexture(texture3);
-
-    
+    SDL_DestroyTexture(texture3);    
 }

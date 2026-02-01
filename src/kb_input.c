@@ -4,6 +4,10 @@
 #include "defs.h"
 #include "synth.h"
 
+/**
+ * Keyboard Input handler
+ * Change the note and the current octave and then update the synth oscillators
+ */
 void handle_input(SDL_Event *event, note_t *note, synth_3osc_t *synth) {
 
     SDL_Keycode key = event->key.keysym.sym;
