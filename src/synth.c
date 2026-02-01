@@ -19,6 +19,10 @@ double get_adsr_envelope(sound_t *sound) {
     int attack_frames = (int)(adsr->att * RATE);
     int decay_frames = (int)(adsr->dec * RATE);
     int release_frames = (int)(adsr->rel * RATE);
+
+    if (attack_frames  < 1) attack_frames  = 1;
+    if (decay_frames   < 1) decay_frames   = 1;
+    if (release_frames < 1) release_frames = 1;
     
     int release_start = total_frames - release_frames;
     if (release_start < 0) release_start = 0;

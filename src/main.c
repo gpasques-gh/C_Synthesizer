@@ -127,10 +127,7 @@ int main(int argc, char **argv) {
 
     TTF_Init();
     TTF_Font* sans = TTF_OpenFont("FreeSans.ttf", 24);
-    if (!sans) {
-        printf("test");
-        return 1;
-    }
+
 
     SDL_Event event;
 
@@ -159,13 +156,18 @@ int main(int argc, char **argv) {
 
         render_synth3osc(synth_3osc, buffer);
 
-        int err = snd_pcm_writei(handle, buffer, FRAMES);
+        int err = snd_pcm_wait(handle, 10); // timeout 10 ms
+        if (err > 0) {
+            err = snd_pcm_writei(handle, buffer, FRAMES);
+        }
+
         if (err == -EPIPE) {
             snd_pcm_prepare(handle);
-        } else if (err < 0) {
+        }
+        else if (err < 0 && err != -EAGAIN) {
             snd_pcm_prepare(handle);
         }
-    
+            
         
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
