@@ -9,11 +9,36 @@
 #include "synth.h"
 #include "sdl_interface.h"
 #include "midi.h"
+#include "kb_input.h"
 
 int main(int argc, char **argv) {
 
+    if (argc < 2) {
+        fprintf(stderr, "Not enought arguments.");
+        return 1;
+    }
+
+    char midi_device[256];
+    snd_rawmidi_t *midi_in;
+
+    int kb_input = 0;
+    int midi_input = 0;
+
+    if (strcmp(argv[1], "-kb") == 0) {
+        kb_input = 1;
+    } else if (strcmp(argv[1], "-midi") == 0 && argc >= 3) {
+        midi_input = 1;
+        strcpy(midi_device, argv[2]);
+    } else if (strcmp(argv[1], "-midi") == 0 && argc < 3) {
+        fprintf(stderr, "Missing midi hardware device id.");
+        return 1;
+    }
+
     int octave = DEFAULT_OCTAVE;
     note_t note = {.semitone = nC, .octave = octave, .duration = 5, .velocity = 0};
+
+    if (kb_input) note.velocity = 127;
+
 
     lp_filter_t filter;
     lp_init(&filter, 500.0f);
@@ -26,12 +51,6 @@ int main(int argc, char **argv) {
     double decay = 0.2;
     double sustain = 0.7;
     double release = 0.2;
-
-    char midi_device[256];
-
-    if (argc >= 2) {
-        strcpy(midi_device, argv[1]);
-    }
 
     adsr_t adsr = {
         .att = attack,
@@ -121,12 +140,12 @@ int main(int argc, char **argv) {
     TTF_Init();
     TTF_Font* sans = TTF_OpenFont("FreeSans.ttf", 24);
 
-    snd_rawmidi_t *midi_in;
-    snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK);
-
-    if (!midi_in) {
-        printf("Erreur midi");
-        return 1;
+    if (midi_input) {
+        snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK);    
+        if (!midi_in) {
+            printf("Erreur midi");
+            return 1;
+        }
     }
 
     SDL_Event event;
@@ -138,10 +157,14 @@ int main(int argc, char **argv) {
         while(SDL_PollEvent(&event) != 0) {
             if(event.type == SDL_QUIT) {
                 running = 0;
+            }
+            if (kb_input && event.type == SDL_KEYDOWN) {
+                handle_input(&event, &note, &synth_3osc);
             } 
         }
 
-        int midi_err = get_midi(midi_in, &note, &synth_3osc);
+        if (midi_input)
+            get_midi(midi_in, &note, &synth_3osc);
     
         render_synth3osc(&synth_3osc, buffer);
         int err = snd_pcm_writei(handle, buffer, FRAMES);
@@ -155,10 +178,9 @@ int main(int argc, char **argv) {
         SDL_RenderClear(renderer);
         render_interface(note, synth_3osc, sans, renderer);
         SDL_RenderPresent(renderer);
-        
     }
 
-    snd_rawmidi_close(midi_in);
+    if (midi_input) snd_rawmidi_close(midi_in);
     TTF_CloseFont(sans);
     TTF_Quit();
     SDL_DestroyRenderer(renderer);
