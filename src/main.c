@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     };
 
     sound_t sound = {
-        .s_adsr = adsr,
+        .s_adsr = &adsr,
         .s_active = 0,
         .s_phase = 0.0,
         .s_frames_left = 0,
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
     };
 
     sound_t sound_b = {
-        .s_adsr = adsr,
+        .s_adsr = &adsr,
         .s_active = 0,
         .s_phase = 0.0,
         .s_frames_left = 0,
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     };
 
     sound_t sound_c = {
-        .s_adsr = adsr,
+        .s_adsr = &adsr,
         .s_active = 0,
         .s_phase = 0.0,
         .s_frames_left = 0,
@@ -129,45 +129,67 @@ int main(int argc, char **argv) {
     TTF_Font* sans = TTF_OpenFont("FreeSans.ttf", 24);
 
 
+    snd_rawmidi_t *midi_in;
+    snd_rawmidi_open(&midi_in, NULL, "hw:0,0,0", SND_RAWMIDI_NONBLOCK);
+
     SDL_Event event;
 
     while (running) {
-
-        int note_changed = 0;
 
         while(SDL_PollEvent(&event) != 0) {
             if(event.type == SDL_QUIT) {
                 running = 0;
             } 
-            if (event.type == SDL_KEYDOWN) {
-                note_changed = handle_input(&note, event);
+        }
+
+        unsigned char midi_buffer[1024];
+        ssize_t ret = snd_rawmidi_read(midi_in, midi_buffer, sizeof(midi_buffer));
+        if (ret > 0) {
+            for (int i = 0; i + 2 < ret; i += 3) {
+                unsigned char status = midi_buffer[i];
+                unsigned char data1 = midi_buffer[i+1];
+                unsigned char data2 = midi_buffer[i+2];
+
+                if ((status & 0xF0) == 0x90 && data2 > 0) {
+                    note.n_semitone = (data1 % 12);
+                    note.n_octave = (data1 / 12) - 1;
+                    note_to_sound(note, &sound);
+                    note_to_sound(note, &sound_b);
+                    sound_b.s_freq += 1;
+                    note_to_sound(note, &sound_c);
+                    sound_c.s_freq -= 1;
+                }
+
+                if ((status & 0xF0) == 0xB0) {
+                    printf("Knob CC: %d Value: %d\n", data1, data2);
+                    switch(data1) {
+                        case 73:
+                            adsr.att = (data2 / 127.0);
+                            break;
+                        case 75:
+                            adsr.dec = (data2 / 127.0);
+                            break;
+                        case 79:
+                            adsr.sus = (data2 / 127.0);
+                            break;
+                        case 72:
+                            adsr.rel = (data2 / 127.0);
+                            break;
+                        default:
+                            break;
+                    }
+                }
             }
         }
-
-        
-        
-        
-        
-        if (note_changed) {
-            note_to_sound(note, &sound);
-            note_to_sound(note, &sound_b);
-            note_to_sound(note, &sound_c);
-        }
+    
 
         render_synth3osc(synth_3osc, buffer);
-
-        int err = snd_pcm_wait(handle, 10); // timeout 10 ms
-        if (err > 0) {
-            err = snd_pcm_writei(handle, buffer, FRAMES);
-        }
-
+        int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE) {
             snd_pcm_prepare(handle);
-        }
-        else if (err < 0 && err != -EAGAIN) {
+        } else if (err < 0) {
             snd_pcm_prepare(handle);
         }
-            
         
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
@@ -176,6 +198,7 @@ int main(int argc, char **argv) {
         
     }
 
+    snd_rawmidi_close(midi_in);
     TTF_CloseFont(sans);
     TTF_Quit();
     SDL_DestroyRenderer(renderer);

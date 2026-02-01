@@ -48,8 +48,8 @@
 #define SAWTOOTH_WAVE 3
 
 // TEXT USER INTERFACE
-#define WIDTH 300
-#define HEIGHT 300
+#define WIDTH 600
+#define HEIGHT 600
 #define FILE_INTERFACE "interface/interface.txt"
 
 #endif 

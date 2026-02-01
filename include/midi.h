@@ -4,9 +4,8 @@
 #include <alsa/asoundlib.h>
 #include "synth.h"
 
-int get_midi(char *device, note_t *pnote) {
-    snd_rawmidi_t *midi_in;
-    snd_rawmidi_open(&midi_in, NULL, device, SND_RAWMIDI_NONBLOCK);
+int get_midi(snd_rawmidi_t *midi_in, note_t *pnote) {
+    
     if (midi_in) {
         unsigned char buffer[1024];
         ssize_t ret;
@@ -25,16 +24,16 @@ int get_midi(char *device, note_t *pnote) {
                     unsigned char vel = buffer[i + 2];
 
                     if ((status & 0xF0) == 0x90 && vel > 0) {
-                        pnote->n_semitone = note % 12;
+                        pnote->n_semitone = (note % 12) + 1;
                         pnote->n_octave = (note / 12) - 1;
-                        snd_rawmidi_close(midi_in);
+                
                         return 1;
                     }
                 }
             }
         }
     }
-    snd_rawmidi_close(midi_in);
+    
     return 0;
 }
 

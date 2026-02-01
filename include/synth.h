@@ -21,7 +21,7 @@ typedef struct {
     int s_frames_total;
     int s_active;
     short s_wave;
-    adsr_t s_adsr;
+    adsr_t *s_adsr;
 } sound_t;
 
 typedef struct {

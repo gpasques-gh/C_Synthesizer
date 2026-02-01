@@ -11,7 +11,7 @@ double get_adsr_envelope(sound_t *sound) {
     
     if (!sound->s_active) return 0.0;
     
-    adsr_t *adsr = &sound->s_adsr;
+    adsr_t *adsr = sound->s_adsr;
 
     int total_frames = sound->s_frames_total;
     int elapsed_frames = total_frames - sound->s_frames_left;
