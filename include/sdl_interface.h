@@ -8,5 +8,6 @@
 #include "defs.h"
 
 void render_interface(note_t note, synth_3osc_t synth, TTF_Font *font, SDL_Renderer *renderer);
+void render_waveform(SDL_Renderer *renderer, short *buffer);
 
 #endif 

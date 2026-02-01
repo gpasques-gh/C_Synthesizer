@@ -54,5 +54,25 @@ void render_interface(note_t note, synth_3osc_t synth, TTF_Font *font, SDL_Rende
     };
     SDL_RenderCopy(renderer, texture3, NULL, &surface_rect3);
     SDL_FreeSurface(surface3);
-    SDL_DestroyTexture(texture3);    
+    SDL_DestroyTexture(texture3);
+}
+
+/**
+ * Rendering the waveform from the waveform buffer
+ */
+void render_waveform(SDL_Renderer *renderer, short *buffer) {
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
+    int mid_y = HEIGHT / 2;
+    
+    for (int i = 0; i < FRAMES; i++) {
+        int x1 = (i * WIDTH) / FRAMES;
+        int x2 = ((i + 1) * WIDTH) / FRAMES;
+
+        int y1 = mid_y - ((buffer[i] * mid_y) / 32768);
+        int y2 = mid_y - ((buffer[i + 1] * mid_y) / 32768);
+
+        SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+    }
 }

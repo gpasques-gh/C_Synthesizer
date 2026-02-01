@@ -177,6 +177,7 @@ int main(int argc, char **argv) {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
         render_interface(note, synth_3osc, sans, renderer);
+        render_waveform(renderer, buffer);
         SDL_RenderPresent(renderer);
     }
 
