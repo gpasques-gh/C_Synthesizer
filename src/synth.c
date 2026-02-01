@@ -7,14 +7,14 @@
  * Generate the amplitude for the current sound frame
  * based on the ADSR envelope of the given sound
  */
-double get_adsr_envelope(sound_t *sound) {
+double get_adsr_envelope(synth_3osc_t *synth) {
     
-    if (!sound->s_active) return 0.0;
+    if (!synth->active) return 0.0;
     
-    adsr_t *adsr = sound->s_adsr;
+    adsr_t *adsr = synth->adsr;
 
-    int total_frames = sound->s_frames_total;
-    int elapsed_frames = total_frames - sound->s_frames_left;
+    int total_frames = synth->frames_total;
+    int elapsed_frames = total_frames - synth->frames_left;
 
     int attack_frames = (int)(adsr->att * RATE);
     int decay_frames = (int)(adsr->dec * RATE);
@@ -58,20 +58,19 @@ double get_adsr_envelope(sound_t *sound) {
  * Generate a sine wave with the given sound structure into the sound buffer
  * The buffer is then read into the snd_pcm 
  */
-void render_sine(sound_t *sound, short *buffer) {
+void render_sine(osc_t *sound, short *buffer) {
 
-    double phase_inc = 2.0 * M_PI * sound->s_freq / RATE;
+    double phase_inc = 2.0 * M_PI * sound->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
         
-        double envelope = get_adsr_envelope(sound);
-        double sample = envelope * sin(sound->s_phase);
+        double sample = sin(sound->phase);
         buffer[i] = (short)(AMPLITUDE * sample);
         
-        sound->s_phase += phase_inc;
-        if (sound->s_phase >= 2 * M_PI) sound->s_phase -= 2 * M_PI;
-        if (sound->s_frames_left > 0) sound->s_frames_left--;
-        else sound->s_active = 0;
+        sound->phase += phase_inc;
+        if (sound->phase >= 2 * M_PI) sound->phase -= 2 * M_PI;
+        if (sound->frames_left > 0) sound->frames_left--;
+        else sound->active = 0;
     }
 }
 
@@ -79,22 +78,21 @@ void render_sine(sound_t *sound, short *buffer) {
  * Generate a square wave with the given sound structure into the sound buffer
  * The buffer is then read into the snd_pcm 
  */
-void render_square(sound_t *sound, short *buffer) {
+void render_square(osc_t *sound, short *buffer) {
 
-    double phase_inc = sound->s_freq / RATE;
+    double phase_inc = sound->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
 
-        double envelope = get_adsr_envelope(sound);
-        double sample = (sound->s_phase < 0.5) ? 1.0 : -1.0;
-        sample *= envelope;
+        double sample = (sound->phase < 0.5) ? 1.0 : -1.0;
+
         buffer[i] = (short)(AMPLITUDE * sample);
 
-        sound->s_phase += phase_inc;
+        sound->phase += phase_inc;
 
-        if (sound->s_phase >= 1.0) sound->s_phase -= 1.0;
-        if (sound->s_frames_left > 0) sound->s_frames_left--;
-        else sound->s_active = 0;
+        if (sound->phase >= 1.0) sound->phase -= 1.0;
+        if (sound->frames_left > 0) sound->frames_left--;
+        else sound->active = 0;
     }
 }
 
@@ -102,21 +100,20 @@ void render_square(sound_t *sound, short *buffer) {
  * Generate a triangle wave with the given sound structure into the sound buffer
  * The buffer is then read into the snd_pcm 
  */
-void render_triangle(sound_t *sound, short *buffer) {
+void render_triangle(osc_t *sound, short *buffer) {
 
-    double phase_inc = sound->s_freq / RATE;
+    double phase_inc = sound->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
 
-        double envelope = get_adsr_envelope(sound);
-        double sample = 1.0 - 4.0 * fabs(sound->s_phase - 0.5);
-        sample *= envelope;
+    
+        double sample = 1.0 - 4.0 * fabs(sound->phase - 0.5);
         buffer[i] = (short)(AMPLITUDE * sample);
 
-        sound->s_phase += phase_inc;
-        if (sound->s_phase >= 1.0) sound->s_phase -= 1.0;
-        if (sound->s_frames_left > 0) sound->s_frames_left--;
-        else sound->s_active = 0;
+        sound->phase += phase_inc;
+        if (sound->phase >= 1.0) sound->phase -= 1.0;
+        if (sound->frames_left > 0) sound->frames_left--;
+        else sound->active = 0;
     }
 
 }
@@ -125,21 +122,18 @@ void render_triangle(sound_t *sound, short *buffer) {
  * Generate a sawtooth wave with the given sound structure into the sound buffer
  * The buffer is then read into the snd_pcm 
  */
-void render_sawtooth(sound_t *sound, short *buffer) {
+void render_sawtooth(osc_t *sound, short *buffer) {
 
-    double phase_inc = sound->s_freq / RATE;
+    double phase_inc = sound->freq / RATE;
 
     for (int i = 0; i < FRAMES; i++) {
-
-        double envelope = get_adsr_envelope(sound);
-        double sample = 2.0 * sound->s_phase - 1.0;
-        sample *= envelope;
+        double sample = 2.0 * sound->phase - 1.0;
         buffer[i] = (short)(AMPLITUDE * sample);
 
-        sound->s_phase += phase_inc;
-        if (sound->s_phase >= 1.0) sound->s_phase -= 1.0;
-        if (sound->s_frames_left > 0) sound->s_frames_left--;
-        else sound->s_active = 0;
+        sound->phase += phase_inc;
+        if (sound->phase >= 1.0) sound->phase -= 1.0;
+        if (sound->frames_left > 0) sound->frames_left--;
+        else sound->active = 0;
     }
 }
 
@@ -147,16 +141,16 @@ void render_sawtooth(sound_t *sound, short *buffer) {
  * Generates the sound frames into the frame buffer
  * The buffer is then read by the snd_pcm into the sound card
  */
-void render_sound(sound_t *sound, short *buffer) {
+void render_sound(osc_t *sound, short *buffer) {
 
-    if (!sound->s_active || sound->s_frames_left == 0) {
+    if (!sound->active || sound->frames_left == 0) {
         for (int i = 0; i < FRAMES; i++) {
             buffer[i] = 0;
         }
         return;
     }
 
-    switch(sound->s_wave) {
+    switch(sound->wave) {
         case SINE_WAVE:
             render_sine(sound, buffer);
             break;
@@ -174,45 +168,28 @@ void render_sound(sound_t *sound, short *buffer) {
     }
 }
 
-/**
- * Generate the sound of both oscillators of a 2 OSC synth
- * Into the mixed sound frame buffer
- */
-void render_synth2osc(synth_2osc_t synth, short *mix_buffer) {
-    short buffer_osc_a[FRAMES];
-    short buffer_osc_b[FRAMES];
-    render_sound(synth.osc_a, buffer_osc_a);
-    render_sound(synth.osc_b, buffer_osc_b);
-
-    for (int i = 0; i < FRAMES; i++) {
-        int mixed = buffer_osc_a[i] + buffer_osc_b[i];
-        mixed /= 2;
-        if (mixed > 32767) mixed = 32767;
-        if (mixed < -32768) mixed = -32768;
-
-        mix_buffer[i] = (short)mixed;
-    }
-}
 
 /**
  * Generate the sound of the three oscillators of a 3 OSC synth
  * Into the mixed sound frame buffer
  */
-void render_synth3osc(synth_3osc_t synth, short *mix_buffer) {
+void render_synth3osc(synth_3osc_t *synth, short *mix_buffer) {
     short buffer_osc_a[FRAMES];
     short buffer_osc_b[FRAMES];
     short buffer_osc_c[FRAMES];
-    render_sound(synth.osc_a, buffer_osc_a);
-    render_sound(synth.osc_b, buffer_osc_b);
-    render_sound(synth.osc_c, buffer_osc_c);
+    render_sound(synth->osc_a, buffer_osc_a);
+    render_sound(synth->osc_b, buffer_osc_b);
+    render_sound(synth->osc_c, buffer_osc_c);
 
     for (int i = 0; i < FRAMES; i++) {
+        double envelope = get_adsr_envelope(synth);
         int mixed = buffer_osc_a[i] + buffer_osc_b[i] + buffer_osc_c[i];
         mixed /= 3;
         if (mixed > 32767) mixed = 32767;
         if (mixed < -32768) mixed = -32768;
-
-        mix_buffer[i] = (short)mixed;
+        mix_buffer[i] = (short)(mixed * envelope);
+        if (synth->frames_left > 0) synth->frames_left--;
+        else synth->active = 0;
     }
 }
 
@@ -221,21 +198,57 @@ void render_synth3osc(synth_3osc_t synth, short *mix_buffer) {
  * Generate the frequency of the given note (semitone + octave)
  * And set the sound frames to the default
  */
-void note_to_sound(note_t note, sound_t *sound) {
+void change_osc_freq(synth_3osc_t *synth, note_t note) {
     // Getting the difference between the given note and A4
-    double a4_diff = ((note.n_octave * 12) + note.n_semitone) - A4_POSITION;
-    sound->s_freq= A_4 * pow(2, a4_diff / 12);
-    sound->s_phase = 0.0;
-    sound->s_active = 1;
-    sound->s_frames_left = (note.n_duration * 1000) * RATE / 1000;
-    sound->s_frames_total = sound->s_frames_left;
+    double a4_diff = ((note.octave * 12) + note.semitone) - A4_POSITION;
+
+    synth->frames_total = (note.duration * 1000) * RATE / 1000;
+    synth->frames_left = synth->frames_total;
+    synth->active = 1;
+
+    synth->osc_a->freq= A_4 * pow(2, a4_diff / 12);
+    synth->osc_a->phase = 0.0;  
+    synth->osc_a->active = 1;
+    synth->osc_a->frames_left = synth->frames_left;
+    synth->osc_a->frames_total = synth->frames_total;
+    
+    synth->osc_b->freq= A_4 * pow(2, a4_diff / 12);
+    synth->osc_b->phase = 0.0;
+    synth->osc_b->active = 1;
+    synth->osc_b->frames_left = synth->frames_left;
+    synth->osc_b->frames_total = synth->frames_total;
+
+    synth->osc_c->freq= A_4 * pow(2, a4_diff / 12);
+    synth->osc_c->phase = 0.0;
+    synth->osc_c->active = 1;
+    synth->osc_c->frames_left = synth->frames_left;
+    synth->osc_c->frames_total = synth->frames_total;
 }
 
 /**
  * Changes the values of a given note structure
  */
 void change_note(note_t *note, short semitone, short octave, int duration) {
-    note->n_semitone = semitone;
-    note->n_octave = octave;
-    note->n_duration = duration;
+    note->semitone = semitone;
+    note->octave = octave;
+    note->duration = duration;
+}
+
+/**
+ * Helper function that give the name a given wave
+ * Used in sdl_interface.c
+ */
+char *get_wave_name(int wave) {
+    switch(wave) {
+        case SINE_WAVE:
+            return "Sine wave";
+        case SQUARE_WAVE:
+            return "Square wave";
+        case TRIANGLE_WAVE:
+            return "Triangle wave";
+        case SAWTOOTH_WAVE:
+            return "Sawtooth wave";
+        default:
+            return "Unkown wave";
+    }
 }

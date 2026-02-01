@@ -2,9 +2,9 @@
 #define SYNTH_H
 
 typedef struct {
-    short n_semitone;
-    short n_octave;
-    short n_duration;
+    short semitone;
+    short octave;
+    short duration;
 } note_t;
 
 typedef struct {
@@ -15,38 +15,35 @@ typedef struct {
 } adsr_t;
 
 typedef struct {
-    double s_freq;
-    double s_phase;
-    int s_frames_left;
-    int s_frames_total;
-    int s_active;
-    short s_wave;
-    adsr_t *s_adsr;
-} sound_t;
+    double freq;
+    double phase;
+    int frames_left;
+    int frames_total;
+    int active;
+    short wave;
+} osc_t;
 
 typedef struct {
-    sound_t *osc_a;
-    sound_t *osc_b;
-    sound_t *osc_c;
+    osc_t *osc_a;
+    osc_t *osc_b;
+    osc_t *osc_c;
+    adsr_t *adsr;
+    int frames_left;
+    int frames_total;
+    int active;
 } synth_3osc_t;
 
-typedef struct {
-    sound_t *osc_a;
-    sound_t *osc_b;
-} synth_2osc_t;
-
 // SOUND RELATED
-double get_adsr_envelope(sound_t *sound);
-void change_note(note_t *note, short semitone, short octave, int duration);
-void note_to_sound(note_t note, sound_t *sound);
+double get_adsr_envelope(synth_3osc_t *synth);
+void change_osc_freq(synth_3osc_t *synth, note_t note);
+char *get_wave_name(int wave);
 
 // SOUND WAVES
-void render_sound(sound_t *sound, short *buffer);
-void render_sine(sound_t *sound, short *buffer);
-void render_square(sound_t *sound, short *buffer);
-void render_triangle(sound_t *sound, short *buffer);
-void render_sawtooth(sound_t *sound, short *buffer);
-void render_synth2osc(synth_2osc_t synth, short *mix_buffer);
-void render_synth3osc(synth_3osc_t synth, short *mix_buffer);
+void render_sound(osc_t *sound,  short *buffer);
+void render_sine(osc_t *sound, short *buffer);
+void render_square(osc_t *sound, short *buffer);
+void render_triangle(osc_t *sound, short *buffer);
+void render_sawtooth(osc_t *sound, short *buffer);
+void render_synth3osc(synth_3osc_t *synth, short *mix_buffer);
 
 #endif

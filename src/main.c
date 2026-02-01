@@ -7,14 +7,13 @@
 
 #include "defs.h"
 #include "synth.h"
-#include "input.h"
 #include "sdl_interface.h"
 #include "midi.h"
 
 int main(int argc, char **argv) {
 
     int octave = DEFAULT_OCTAVE;
-    note_t note = {.n_semitone = nC, .n_octave = octave, .n_duration = 5};
+    note_t note = {.semitone = nC, .octave = octave, .duration = 5};
     
     int osc_a_wave = 0;
     int osc_b_wave = 0;
@@ -27,15 +26,8 @@ int main(int argc, char **argv) {
 
     char midi_device[256];
 
-    if (argc >= 10) {
-        attack = atof(argv[1]);
-        decay = atof(argv[2]);
-        sustain = atof(argv[3]);
-        release = atof(argv[4]);
-        osc_a_wave = atol(argv[5]);
-        osc_b_wave = atol(argv[6]);
-        osc_c_wave = atol(argv[7]);
-        strcpy(midi_device, argv[8]);
+    if (argc >= 2) {
+        strcpy(midi_device, argv[1]);
     }
 
     adsr_t adsr = {
@@ -45,42 +37,38 @@ int main(int argc, char **argv) {
         .rel = release
     };
 
-    sound_t sound = {
-        .s_adsr = &adsr,
-        .s_active = 0,
-        .s_phase = 0.0,
-        .s_frames_left = 0,
-        .s_frames_total = 0,
-        .s_wave = osc_a_wave
+    osc_t osc_a = {
+        .active = 0,
+        .phase = 0.0,
+        .frames_left = 0,
+        .frames_total = 0,
+        .wave = osc_a_wave
     };
 
-    sound_t sound_b = {
-        .s_adsr = &adsr,
-        .s_active = 0,
-        .s_phase = 0.0,
-        .s_frames_left = 0,
-        .s_frames_total = 0,
-        .s_wave = osc_b_wave
+    osc_t osc_b = {
+        .active = 0,
+        .phase = 0.0,
+        .frames_left = 0,
+        .frames_total = 0,
+        .wave = osc_b_wave
     };
 
-    sound_t sound_c = {
-        .s_adsr = &adsr,
-        .s_active = 0,
-        .s_phase = 0.0,
-        .s_frames_left = 0,
-        .s_frames_total = 0,
-        .s_wave = osc_c_wave
-    };
-
-    synth_2osc_t synth_2osc = {
-        .osc_a = &sound,
-        .osc_b = &sound_b
+    osc_t osc_c = {
+        .active = 0,
+        .phase = 0.0,
+        .frames_left = 0,
+        .frames_total = 0,
+        .wave = osc_c_wave
     };
 
     synth_3osc_t synth_3osc =  {
-        .osc_a = &sound,
-        .osc_b = &sound_b,
-        .osc_c = &sound_c
+        .osc_a = &osc_a,
+        .osc_b = &osc_b,
+        .osc_c = &osc_c,
+        .adsr = &adsr,
+        .active = 0,
+        .frames_left = 0.0,
+        .frames_total = 0.0
     };
 
     snd_pcm_t *handle;
@@ -93,7 +81,7 @@ int main(int argc, char **argv) {
     int params_err = snd_pcm_set_params(handle, 
         SND_PCM_FORMAT_S16_LE,
         SND_PCM_ACCESS_RW_INTERLEAVED,
-        1, RATE, 1, 1000000);
+        1, RATE, 1, 50000);
 
     if (params_err < 0) {
         fprintf(stderr, "snd_pcm_set_params error: %s\n", snd_strerror(params_err));
@@ -130,6 +118,11 @@ int main(int argc, char **argv) {
     snd_rawmidi_t *midi_in;
     snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK);
 
+    if (!midi_in) {
+        printf("Erreur midi");
+        return 1;
+    }
+
     SDL_Event event;
 
     int running = 1;
@@ -144,7 +137,7 @@ int main(int argc, char **argv) {
 
         int midi_err = get_midi(midi_in, &note, &synth_3osc);
     
-        render_synth3osc(synth_3osc, buffer);
+        render_synth3osc(&synth_3osc, buffer);
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE) {
             snd_pcm_prepare(handle);
