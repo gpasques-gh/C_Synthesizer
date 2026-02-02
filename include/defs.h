@@ -26,5 +26,6 @@
 #define MAX_AMPLITUDE DEFAULT_AMPLITUDE * 2
 #define RATE 44100
 #define LATENCY 30000
+#define REVERB_BUFFER_SIZE (RATE * 2)
 
 #endif 

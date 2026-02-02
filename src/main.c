@@ -73,6 +73,7 @@ int main(int argc, char **argv) {
 
     adsr_t adsr = {.att = 0.0, .dec = 0.0, .sus = 0.0, .rel = 0.0};
 
+
     osc_t voice_a_osc_a = {.phase = 0.0, .wave = 0};
     osc_t voice_a_osc_b = {.phase = 0.0, .wave = 0};
     osc_t voice_a_osc_c = {.phase = 0.0, .wave = 0};

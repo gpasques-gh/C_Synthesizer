@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 #include <math.h>
-
+#include <string.h>
 #include <stdio.h>
 #include "synth.h"
 #include "defs.h"
@@ -206,6 +206,12 @@ void render_poly_synth(poly_synth_t *synth, short *poly_buffer, int n_voices) {
     //fprintf(stderr, "voices render: %d", n_voices);
 
     if (n_voices == 0) {
+        synth->voice_a->active = 0;
+        synth->voice_b->active = 0;
+        synth->voice_c->active = 0;
+        synth->voice_d->active = 0;
+        synth->voice_e->active = 0;
+        synth->voice_f->active = 0;
         for (int i = 0; i < FRAMES; i++) {
             poly_buffer[i] = 0;
         }
@@ -223,12 +229,14 @@ void render_poly_synth(poly_synth_t *synth, short *poly_buffer, int n_voices) {
 
     for (int i = 0; i < FRAMES; i++) {
         int poly_mix = buffer_voice_a[i] + buffer_voice_b[i] + buffer_voice_c[i] + buffer_voice_d[i] + buffer_voice_e[i] + buffer_voice_f[i];
-        poly_mix /= 3;
+        poly_mix /= 6;
         if (poly_mix > 32767) poly_mix = 32767;
         if (poly_mix < -32768) poly_mix = -32768;
         poly_buffer[i] = lp_process(synth->lp_filter, poly_mix);
-    }
+    } 
 }
+
+
 
 /**
  * Converts a note structure to a sound structure

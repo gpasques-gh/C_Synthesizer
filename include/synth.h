@@ -1,6 +1,8 @@
 #ifndef SYNTH_H
 #define SYNTH_H
 
+#include "defs.h"
+
 #define SINE_WAVE 0
 #define SQUARE_WAVE 1
 #define TRIANGLE_WAVE 2
@@ -43,6 +45,9 @@ typedef struct {
     double velocity_amplitude;
 } synth_3osc_t;
 
+
+
+
 typedef struct {
     synth_3osc_t *voice_a;
     synth_3osc_t *voice_b;
@@ -54,6 +59,7 @@ typedef struct {
     double detune;
     int amplitude;
 } poly_synth_t;
+
 
 // SOUND RELATED
 double get_adsr_envelope(synth_3osc_t *synth);

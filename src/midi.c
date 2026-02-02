@@ -41,6 +41,9 @@ int get_midi(snd_rawmidi_t *midi_in, note_t *note, poly_synth_t * synth, int *n_
             note->velocity = data2;
 
             synth_3osc_t *unused_voice = get_unused_voice(synth);
+
+            if (unused_voice == NULL) continue;
+
             change_osc_freq(unused_voice, *note, synth->detune);
             unused_voice->midi_note = data1;
         }
@@ -51,15 +54,15 @@ int get_midi(snd_rawmidi_t *midi_in, note_t *note, poly_synth_t * synth, int *n_
 
                 if (synth->voice_a->midi_note == data1)
                     synth->voice_a->active = 0;
-                else if (synth->voice_b->midi_note == data1)
+                if (synth->voice_b->midi_note == data1)
                     synth->voice_b->active = 0;
-                else if (synth->voice_c->midi_note == data1)
+                if (synth->voice_c->midi_note == data1)
                     synth->voice_c->active = 0;
-                else if (synth->voice_d->midi_note == data1)
+                if (synth->voice_d->midi_note == data1)
                     synth->voice_d->active = 0;
-                else if (synth->voice_e->midi_note == data1)
+                if (synth->voice_e->midi_note == data1)
                     synth->voice_e->active = 0;
-                else if (synth->voice_f->midi_note == data1)
+                if (synth->voice_f->midi_note == data1)
                     synth->voice_f->active = 0;
 
                 fprintf(stderr, "voices off: %d\n", *n_voices);
