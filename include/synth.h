@@ -3,7 +3,7 @@
 
 #include "defs.h"
 
-typedef enum 
+typedef enum
 {
     ENV_IDLE,
     ENV_ATTACK,
@@ -12,25 +12,25 @@ typedef enum
     ENV_RELEASE
 } env_state_t;
 
-typedef struct 
+typedef struct
 {
     double *attack, *decay, *sustain, *release;
     double output;
     env_state_t state;
 } adsr_t;
 
-typedef struct 
+typedef struct
 {
     double freq, phase;
     short wave;
 } osc_t;
 
-typedef struct 
+typedef struct
 {
     float alpha, prev, cutoff;
 } lp_filter_t;
 
-typedef struct 
+typedef struct
 {
     osc_t *oscillators;
     adsr_t *adsr;
@@ -39,7 +39,7 @@ typedef struct
     double velocity_amp;
 } voice_t;
 
-typedef struct 
+typedef struct
 {
     voice_t *voices;
     lp_filter_t *filter;
@@ -59,6 +59,5 @@ void render_synth(synth_t *synth, short *buffer);
 double adsr_process(adsr_t *adsr);
 void lp_init(lp_filter_t *filter, float cutoff);
 short lp_process(lp_filter_t *filter, short input);
-
 
 #endif

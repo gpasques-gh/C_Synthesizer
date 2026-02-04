@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 
     if (strcmp(argv[1], "-kb") == 0 && argc == 2)
         keyboard_input = 1;
-    else if (strcmp(argv[1], "-kb") == 0 && argc == 3) 
+    else if (strcmp(argv[1], "-kb") == 0 && argc == 3)
     {
         if (strcmp(argv[2], "QWERTY") == 0)
             keyboard_input = 1;
@@ -48,14 +48,14 @@ int main(int argc, char **argv)
         {
             keyboard_input = 1;
             keyboard_layout = AZERTY;
-        } 
+        }
         else
         {
             usage();
             return 1;
         }
     }
-    else if (strcmp(argv[1], "-kb") == 0 && argc > 3) 
+    else if (strcmp(argv[1], "-kb") == 0 && argc > 3)
     {
         usage();
         return 1;
@@ -87,13 +87,12 @@ int main(int argc, char **argv)
     double sustain = 0.7;
     double release = 0.2;
 
-    synth_t synth = 
-    {
-        .voices = malloc(sizeof(voice_t) * VOICES),
-        .amp = DEFAULT_AMPLITUDE,
-        .detune = 0.0,
-        .filter = &filter
-    };
+    synth_t synth =
+        {
+            .voices = malloc(sizeof(voice_t) * VOICES),
+            .amp = DEFAULT_AMPLITUDE,
+            .detune = 0.0,
+            .filter = &filter};
 
     if (synth.voices == NULL)
     {
@@ -101,13 +100,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    for (int i = 0; i < VOICES; i++) 
+    for (int i = 0; i < VOICES; i++)
     {
         synth.voices[i].adsr = malloc(sizeof(adsr_t));
         if (synth.voices[i].adsr == NULL)
         {
             fprintf(stderr, "memory allocation failed.\n");
-            for (int j = 0; j < i; j++) 
+            for (int j = 0; j < i; j++)
             {
                 free(synth.voices[j].adsr);
                 free(synth.voices[j].oscillators);
@@ -127,18 +126,18 @@ int main(int argc, char **argv)
         synth.voices[i].active = 0;
 
         synth.voices[i].oscillators = malloc(sizeof(osc_t) * 3);
-        if (synth.voices[i].oscillators == NULL) 
+        if (synth.voices[i].oscillators == NULL)
         {
             fprintf(stderr, "memory allocation failed.\n");
             goto cleanup_synth;
-        } 
+        }
         for (int j = 0; j < 3; j++)
         {
             synth.voices[i].oscillators[j].freq = 0.0;
             synth.voices[i].oscillators[j].phase = 0.0;
             synth.voices[i].oscillators[j].wave = SINE_WAVE;
         }
-    } 
+    }
 
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
@@ -156,20 +155,20 @@ int main(int argc, char **argv)
     {
         fprintf(stderr, "error while setting sound card parameters: %s\n", snd_strerror(params_err));
         goto cleanup_alsa;
-    } 
+    }
 
     snd_pcm_prepare(handle);
 
-    short buffer[FRAMES]; 
-    for (int i = 0; i < 5; i++)  
+    short buffer[FRAMES];
+    for (int i = 0; i < 5; i++)
     {
         for (int j = 0; j < FRAMES; j++)
             buffer[j] = 0;
         snd_pcm_writei(handle, buffer, FRAMES);
     }
-        
+
     window = SDL_CreateWindow(
-        "ALSA Synth", 0, 0, 
+        "ALSA Synth", 0, 0,
         WIDTH, HEIGHT,
         SDL_WINDOW_SHOWN);
     if (window == NULL)
@@ -185,9 +184,9 @@ int main(int argc, char **argv)
         goto cleanup_window;
     }
 
-    SDL_Texture *white_keys_texture = SDL_CreateTexture(renderer, 
-    SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 
-    WIDTH, WHITE_KEYS_HEIGHT);
+    SDL_Texture *white_keys_texture = SDL_CreateTexture(renderer,
+                                                        SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+                                                        WIDTH, WHITE_KEYS_HEIGHT);
 
     if (white_keys_texture == NULL)
     {
@@ -197,13 +196,13 @@ int main(int argc, char **argv)
     SDL_SetTextureBlendMode(white_keys_texture, SDL_BLENDMODE_BLEND);
     SDL_SetRenderTarget(renderer, white_keys_texture);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderClear(renderer);                       
+    SDL_RenderClear(renderer);
     render_keyboard_base(renderer);
     SDL_SetRenderTarget(renderer, NULL);
 
-    SDL_Texture *black_keys_texture = SDL_CreateTexture(renderer, 
-    SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 
-    WIDTH, WHITE_KEYS_HEIGHT);
+    SDL_Texture *black_keys_texture = SDL_CreateTexture(renderer,
+                                                        SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+                                                        WIDTH, WHITE_KEYS_HEIGHT);
 
     if (black_keys_texture == NULL)
     {
@@ -214,13 +213,13 @@ int main(int argc, char **argv)
     SDL_SetTextureBlendMode(black_keys_texture, SDL_BLENDMODE_BLEND);
     SDL_SetRenderTarget(renderer, black_keys_texture);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderClear(renderer);                       
+    SDL_RenderClear(renderer);
     render_black_keys(renderer);
     SDL_SetRenderTarget(renderer, NULL);
 
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_Event event;    
-    
+    SDL_Event event;
+
     TTF_Init();
     font = TTF_OpenFont("Regular.ttf", 24);
     if (font == NULL)
@@ -243,11 +242,11 @@ int main(int argc, char **argv)
         {
             if (event.type == SDL_QUIT)
                 running = 0;
-            else if (keyboard_input && 
-                     event.type == SDL_KEYDOWN && 
+            else if (keyboard_input &&
+                     event.type == SDL_KEYDOWN &&
                      event.key.repeat == 0)
-                handle_input(event.key.keysym.sym, &synth, renderer, keyboard_layout, 
-                    &octave, &attack, &decay, &sustain, &release);
+                handle_input(event.key.keysym.sym, &synth, renderer, keyboard_layout,
+                             &octave, &attack, &decay, &sustain, &release);
             else if (keyboard_input && event.type == SDL_KEYUP)
                 handle_release(event.key.keysym.sym, &synth, renderer, keyboard_layout, octave);
         }
@@ -278,17 +277,17 @@ int main(int argc, char **argv)
 
         SDL_Rect keyboard_dest = {0, HEIGHT - WHITE_KEYS_HEIGHT, WIDTH, WHITE_KEYS_HEIGHT};
         SDL_RenderCopy(renderer, white_keys_texture, NULL, &keyboard_dest);
-        
+
         for (int v = 0; v < VOICES; v++)
             if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
                 render_key(renderer, synth.voices[v].note);
-        
+
         SDL_RenderCopy(renderer, black_keys_texture, NULL, &keyboard_dest);
 
         for (int v = 0; v < VOICES; v++)
             if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
                 render_key(renderer, synth.voices[v].note);
-        
+
         SDL_RenderPresent(renderer);
     }
 
@@ -321,7 +320,7 @@ cleanup_alsa:
         snd_pcm_close(handle);
     }
 cleanup_synth:
-    for (int i = 0; i < VOICES; i++) 
+    for (int i = 0; i < VOICES; i++)
     {
         free(synth.voices[i].adsr);
         free(synth.voices[i].oscillators);
