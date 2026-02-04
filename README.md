@@ -3,7 +3,7 @@ Small project for a C synthesizer written with ALSA C Library and SDL2.
 Only runs on Linux, tested on a Debian machine, works on WSL but only using keyboard input, not MIDI input.  
 Not tested, but MIDI can maybe work in a Linux VM using USB passthrough, although there may be latency induced by the VM.
 
-# Features
+# Features 🎵
 - 3 oscillator synthesizer
 - Up to 6 note polyphony
 - ADSR envelope
@@ -13,20 +13,20 @@ Not tested, but MIDI can maybe work in a Linux VM using USB passthrough, althoug
 - MIDI input
 - SDL graphical interface
 
-# Dependencies
+# Dependencies 💻
 pulseaudio  
 libasound-dev  
 libsdl2-dev  
 libsdl2-ttf-dev  
 
-# Compile and run
+# Compile and run 🛠️
 To compile the projet : `make`  
 To run the synth with keyboard input, the layout then defaults to QWERTY : `./bin/synth -kb`  
 To run the synth with keyboard input and a specific keyboard layout : `./bin/synth -kb <QWERTY/AZERTY>`  
 To run the synth with MIDI input : `./bin/synth -midi midi device hardware id>` (you can get this id by using the amidi -l command)
 The MIDI input was only tested with an Arturia Keylab Essential 61, the keyboard itself should work, but knobs CC values may be off for your keyboard, you can change them in midi.h.  
 
-# Keyboard input
+# Keyboard input ⌨️
 You can set the keyboard layout to be either QWERTY or  AZERTY.  
 The keyboard simulates a "real" piano keyboard, starting from `a` (`q` in AZERTY) to `j`.  
 The up arrow key move the keys up an octave and the down arrow key move the keys down an octave.  
