@@ -5,7 +5,7 @@
 #include "synth.h"
 
 
-static text_cache_t text_cache = {NULL, NULL, "", ""};
+static text_cache_t text_cache = {NULL, NULL, NULL, "", "", ""};
 
 void render_infos(synth_t synth, 
     TTF_Font *font, SDL_Renderer *renderer,
@@ -13,8 +13,24 @@ void render_infos(synth_t synth,
 {
     SDL_Color black = {0, 0, 0, 255};
     
+    char title_buffer[256] = TITLE;
 
-    char envelope_buffer[256];
+    if (strcmp(title_buffer, text_cache.last_title_text) != 0)
+    {
+        if (text_cache.title_texture)
+            SDL_DestroyTexture(text_cache.title_texture);
+
+        SDL_Surface *surface = TTF_RenderText_Solid(font, title_buffer, black);
+        text_cache.title_texture = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_FreeSurface(surface);
+
+        strcpy(text_cache.last_title_text, title_buffer);
+    }
+
+    SDL_Rect title_rect = {.h=50, .w=WIDTH / 2, .x=WIDTH / 4, .y=0};
+    SDL_RenderCopy(renderer, text_cache.title_texture, NULL, &title_rect);
+
+    char envelope_buffer[256]; 
     snprintf(envelope_buffer, sizeof(envelope_buffer), 
         "Envelope - Attack: %.2f | Decay: %.2f | Sustain: %.2f | Release: %.2f", 
         attack, decay, sustain, release);
@@ -31,7 +47,7 @@ void render_infos(synth_t synth,
         strcpy(text_cache.last_envelope_text, envelope_buffer);
     }
     
-    SDL_Rect envelope_rect = {.h = 50, .w = WIDTH, .x = 0, .y = 60};
+    SDL_Rect envelope_rect = {.h = 50, .w = WIDTH * 0.95, .x = (WIDTH - WIDTH * 0.95) / 2, .y = 60};
     SDL_RenderCopy(renderer, text_cache.envelope_texture, NULL, &envelope_rect);
     
     char waveform_buffer[256];
@@ -53,7 +69,7 @@ void render_infos(synth_t synth,
         strcpy(text_cache.last_waveform_text, waveform_buffer);
     }
     
-    SDL_Rect waveform_rect = {.h = 50, .w = WIDTH, .x = 0, .y = 120};
+    SDL_Rect waveform_rect = {.h = 50, .w = WIDTH * 0.95, .x = (WIDTH - WIDTH * 0.95) / 2, .y = 120};
     SDL_RenderCopy(renderer, text_cache.waveform_texture, NULL, &waveform_rect);
 }
 
@@ -105,7 +121,7 @@ void render_keyboard_base(SDL_Renderer *renderer)
 
 
     int white_key_index = 0;
-    for (int octave = 0; octave < (WHITE_KEYS / 7); octave++)
+    for (int octave = 0; octave <= (WHITE_KEYS / 7); octave++)
     {
         for (int i = 0; i < 7; i++)
         {

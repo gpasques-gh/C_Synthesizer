@@ -98,9 +98,10 @@
 // INTERFACE
 #define WIDTH 1200
 #define HEIGHT 800
+#define TITLE "ALSA & SDL Synthesizer"
 
-#define WHITE_KEYS 36
-#define BLACK_KEYS 25
+#define WHITE_KEYS 52
+#define BLACK_KEYS 36
 
 #define WHITE_KEYS_WIDTH WIDTH / WHITE_KEYS
 #define WHITE_KEYS_HEIGHT HEIGHT / 4

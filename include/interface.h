@@ -6,8 +6,10 @@
 #include "synth.h"
 
 typedef struct {
+    SDL_Texture *title_texture;
     SDL_Texture *envelope_texture;
     SDL_Texture *waveform_texture;
+    char last_title_text[256];
     char last_envelope_text[256];
     char last_waveform_text[256];
 } text_cache_t;
