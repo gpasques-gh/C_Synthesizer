@@ -152,7 +152,7 @@ int main(int argc, char **argv)
         handle,
         SND_PCM_FORMAT_S16_LE,
         SND_PCM_ACCESS_RW_INTERLEAVED,
-        1, RATE, 1, 200000);
+        1, RATE, 1, LATENCY);
 
     if (params_err < 0)
     {

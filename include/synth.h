@@ -92,6 +92,11 @@ void render_synth(synth_t *synth, short *buffer);
 void change_freq(voice_t *voice, int note, int velocity, double detune);
 
 /**
+ * Apply the detune change to the voices oscillators
+ */
+void apply_detune_change(synth_t *synth);
+
+/**
  * Get the literal name of a given waveform
  */
 const char *get_wave_name(int wave);

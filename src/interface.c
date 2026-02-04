@@ -127,7 +127,7 @@ void render_waveform(SDL_Renderer *renderer, short *buffer)
     int mid_y = HEIGHT / 4;
     int y = HEIGHT / 3 + mid_y;
 
-    int step = 8;
+    int step = 1;
 
     for (int i = 0; i < FRAMES - step; i += step)
     {

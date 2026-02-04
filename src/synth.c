@@ -50,6 +50,8 @@ double adsr_process(adsr_t *adsr)
         break;
     case ENV_SUSTAIN:
         adsr->output = *adsr->sustain;
+        if (*adsr->sustain == 0.0)
+            adsr->state = ENV_RELEASE;
         break;
     case ENV_RELEASE:
         if (*adsr->release > 0.0)
@@ -178,6 +180,19 @@ void change_freq(voice_t *voice, int note, int velocity, double detune)
     voice->oscillators[1].phase = 0.0;
     voice->oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0) - (5 * detune);
     voice->oscillators[2].phase = 0.0;
+}
+
+/**
+ * Apply the detune change to the voices oscillators
+ */
+void apply_detune_change(synth_t *synth) 
+{
+    for (int v = 0; v < VOICES; v++)
+    {
+        int a4_diff = synth->voices[v].note - A4_POSITION;
+        synth->voices[v].oscillators[1].freq = A_4 * pow(2, a4_diff / 12.0) + (5 * synth->detune);
+        synth->voices[v].oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0) - (5 * synth->detune);
+    }
 }
 
 /**

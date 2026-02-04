@@ -89,6 +89,7 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
             }
             case ARTURIA_DETUNE_KNOB:
                 synth->detune = ((double)data2 / MIDI_MAX_VALUE);
+                apply_detune_change(synth);
                 break;
             case ARTURIA_AMPLITUDE_KNOB:
                 synth->amp = ((double)data2 / MIDI_MAX_VALUE) * 1.0;

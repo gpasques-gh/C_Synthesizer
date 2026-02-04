@@ -113,7 +113,7 @@
 #define FRAMES 512
 #define DEFAULT_AMPLITUDE 0.5
 #define RATE 44100
-#define LATENCY 200000
+#define LATENCY 40000
 
 /**
  * SDL interface
