@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     int octave = DEFAULT_OCTAVE;
 
     lp_filter_t filter;
-    lp_init(&filter, 500.0f);
+    lp_init(&filter, 8000.0f);
 
     double attack = 0.2;
     double decay = 0.3;
@@ -131,14 +131,14 @@ int main(int argc, char **argv)
         {
             fprintf(stderr, "memory allocation failed.\n");
             goto cleanup_synth;
-        }
+        } 
         for (int j = 0; j < 3; j++)
         {
             synth.voices[i].oscillators[j].freq = 0.0;
             synth.voices[i].oscillators[j].phase = 0.0;
             synth.voices[i].oscillators[j].wave = SINE_WAVE;
         }
-    }
+    } 
 
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
@@ -150,18 +150,18 @@ int main(int argc, char **argv)
         handle,
         SND_PCM_FORMAT_S16_LE,
         SND_PCM_ACCESS_RW_INTERLEAVED,
-        1, RATE, 1, LATENCY);
+        1, RATE, 1, 200000);
 
     if (params_err < 0)
     {
         fprintf(stderr, "error while setting sound card parameters: %s\n", snd_strerror(params_err));
         goto cleanup_alsa;
-    }
+    } 
 
     snd_pcm_prepare(handle);
 
-    short buffer[FRAMES];
-    for (int i = 0; i < 5; i++)
+    short buffer[FRAMES]; 
+    for (int i = 0; i < 5; i++)  
     {
         for (int j = 0; j < FRAMES; j++)
             buffer[j] = 0;

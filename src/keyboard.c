@@ -22,8 +22,8 @@ void handle_input(SDL_Keycode key, synth_t *synth, SDL_Renderer *renderer, int l
             return;
         change_freq(free_voice, midi_note, 127, synth->detune);
         return;
-    }
-
+    } 
+ 
     switch (key)
     {
         case ATTACK_INCREMENT_QWERTY:

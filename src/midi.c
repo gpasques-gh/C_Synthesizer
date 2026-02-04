@@ -68,7 +68,7 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
                 case ARTURIA_OSC_B_KNOB:
                     for (int v = 0; v < VOICES; v++)
                         synth->voices[v].oscillators[1].wave = (int)((data2 * 4) / (MIDI_MAX_VALUE + 1));
-                    break;
+                    break; 
                 case ARTURIA_OSC_C_KNOB:
                     for (int v = 0; v < VOICES; v++)
                         synth->voices[v].oscillators[2].wave = (int)((data2 * 4) / (MIDI_MAX_VALUE + 1));
@@ -82,7 +82,7 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
                     synth->detune = ((double)data2 / MIDI_MAX_VALUE);
                     break;
                 case ARTURIA_AMPLITUDE_KNOB:
-                    synth->amp = (int)((data2 * MAX_AMPLITUDE)) / (MIDI_MAX_VALUE + 1);
+                    synth->amp = ((double)data2 / MIDI_MAX_VALUE) * 1.0;
                     break;
                 default:
                     break;

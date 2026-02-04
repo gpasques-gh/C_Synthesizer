@@ -44,7 +44,7 @@ typedef struct
     voice_t *voices;
     lp_filter_t *filter;
     double detune;
-    int amp;
+    double amp;
 } synth_t;
 
 // HELPERS

@@ -90,10 +90,9 @@
 
 // SOUND RELATED DEFS
 #define FRAMES 512 // Length of the frame buffer
-#define DEFAULT_AMPLITUDE 6000
-#define MAX_AMPLITUDE DEFAULT_AMPLITUDE * 2
+#define DEFAULT_AMPLITUDE 0.5
 #define RATE 44100
-#define LATENCY 100000
+#define LATENCY 200000
 
 // INTERFACE
 #define WIDTH 1200

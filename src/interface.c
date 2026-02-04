@@ -87,14 +87,18 @@ void render_waveform(SDL_Renderer *renderer, short *buffer)
 {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
-    int mid_y = HEIGHT / 2;
-    for (int i = 0; i < FRAMES - 1; i++) 
-    {
+    int mid_y = HEIGHT / 2;  
+     
+    // Dessiner seulement 1 point sur 8 ou 16 pour réduire le nombre d'appels
+    int step = 8; // Ajustez selon vos besoins 
+    
+    for (int i = 0; i < FRAMES - step; i += step) 
+    { 
         int x1 = (i * WIDTH) / FRAMES;
-        int x2 = ((i + 1) * WIDTH) / FRAMES;
+        int x2 = ((i + step) * WIDTH) / FRAMES;
 
         int y1 = mid_y - ((buffer[i] * mid_y) / 32768);
-        int y2 = mid_y - ((buffer[i + 1] * mid_y) / 32768);
+        int y2 = mid_y - ((buffer[i + step] * mid_y) / 32768);
 
         SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
     }

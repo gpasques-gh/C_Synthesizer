@@ -8,6 +8,7 @@ double adsr_process(adsr_t *adsr)
     switch(adsr->state)
     {
         case ENV_IDLE:
+            return 0.0;
             break;
         case ENV_ATTACK:
             if (*adsr->attack > 0.0)
@@ -26,7 +27,6 @@ double adsr_process(adsr_t *adsr)
                 adsr->state = ENV_DECAY;
             }
             break;
-            
         case ENV_DECAY:
             if (*adsr->decay > 0.0)
             {
@@ -44,7 +44,6 @@ double adsr_process(adsr_t *adsr)
                 adsr->state = ENV_SUSTAIN;
             }
             break;
-            
         case ENV_SUSTAIN:
             adsr->output = *adsr->sustain;
             break;
@@ -73,14 +72,15 @@ void render_synth(synth_t *synth, short *buffer)
 {
     double temp_buffer[FRAMES];
     memset(temp_buffer, 0, FRAMES * sizeof(double));
-    
+
+    int active_voices = 0;
+
     for (int v = 0; v < VOICES; v++)
     {
         voice_t *voice = &synth->voices[v];
-        
         if (!voice->active)
             continue;
-        
+        active_voices++;
         for (int i = 0; i < FRAMES; i++)
         {
             double envelope = adsr_process(voice->adsr);
@@ -109,31 +109,46 @@ void render_synth(synth_t *synth, short *buffer)
                     default:
                         sample = 0.0;
                 }
-                
+
                 mixed += sample;
+
                 osc->phase += phase_inc;
-                if (osc->phase >= 1.0) osc->phase -= 1.0;
+                if (osc->phase >= 1.0)
+                    osc->phase -= 1.0;
             }
-            
-            mixed /= 3.0;
+
+            mixed /= 3.0;  
             mixed *= envelope;
             mixed *= voice->velocity_amp;
+            mixed *= synth->amp; 
+            
             temp_buffer[i] += mixed;
         }
-        
+
         if (voice->adsr->state == ENV_IDLE)
+        {
             voice->active = 0;
+            if (active_voices > 0) active_voices--;
+        }
+            
     }
 
-    for (int i = 0; i < FRAMES; i++)
-    {
-        double sample = temp_buffer[i];
-        sample *= synth->amp;
-        sample = lp_process(synth->filter, (short)sample);
+    double gain = (active_voices > 0)
+            ? 1.0 / sqrt((double)active_voices)
+            : 0.0; 
+
+    for (int i = 0; i < FRAMES; i++)  
+    { 
+        double sample = temp_buffer[i] * gain; 
         
-        if (sample > 32767.0) sample = 32767.0;
-        if (sample < -32768.0) sample = -32768.0;
-        buffer[i] = (short)sample;
+        if (sample > 1.0) sample = 1.0;
+        if (sample < -1.0) sample = -1.0;
+        
+        short sample_short = (short)(sample * 32767.0);
+        
+        sample_short = lp_process(synth->filter, sample_short);
+        
+        buffer[i] = sample_short;
     }
 }
 
