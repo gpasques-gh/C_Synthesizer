@@ -188,7 +188,6 @@ short lp_process(lp_filter_t *filter, short input)
     return (short)filter->prev;
 }
 
-
 voice_t *get_free_voice(synth_t *synth)
 {
     for (int i = 0; i < VOICES; i++) 
