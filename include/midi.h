@@ -4,6 +4,7 @@
 #include <alsa/asoundlib.h>
 #include "synth.h"
 
-int get_midi(snd_rawmidi_t *midi_in, synth_t *synth, int *n_voices, double *attack, double *decay, double *sustain, double *release);
+int get_midi(snd_rawmidi_t *midi_in, synth_t *synth, 
+    double *attack, double *decay, double *sustain, double *release);
 
 #endif

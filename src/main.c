@@ -83,11 +83,10 @@ int main(int argc, char **argv)
     lp_init(&filter, 500.0f);
 
     double attack = 0.2;
-    double decay = 0.2;
-    double sustain = 0.2;
+    double decay = 0.3;
+    double sustain = 0.7;
     double release = 0.2;
 
-    int n_voices = 0;
     synth_t synth = 
     {
         .voices = malloc(sizeof(voice_t) * VOICES),
@@ -186,6 +185,22 @@ int main(int argc, char **argv)
         goto cleanup_window;
     }
 
+    SDL_Texture *keyboard_texture = SDL_CreateTexture(renderer, 
+    SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 
+    WIDTH, WHITE_KEYS_HEIGHT);
+
+    if (keyboard_texture == NULL)
+    {
+        fprintf(stderr, "error while creating keyboard texture: %s\n", SDL_GetError());
+        goto cleanup_renderer;
+    }
+
+    SDL_SetRenderTarget(renderer, keyboard_texture);
+SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  // WHITE background
+SDL_RenderClear(renderer);                       // ADD THIS
+    render_keyboard_base(renderer);
+    SDL_SetRenderTarget(renderer, NULL);
+
     SDL_Event event;
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     
@@ -194,7 +209,7 @@ int main(int argc, char **argv)
     if (font == NULL)
     {
         fprintf(stderr, "error while loading font: %s\n", TTF_GetError());
-        goto cleanup_renderer;
+        goto cleanup_texture;
     }
 
     if (midi_input)
@@ -214,37 +229,56 @@ int main(int argc, char **argv)
             else if (keyboard_input && 
                      event.type == SDL_KEYDOWN && 
                      event.key.repeat == 0)
-                handle_input(event.key.keysym.sym, &synth, keyboard_layout, &n_voices, &octave);
+                handle_input(event.key.keysym.sym, &synth, renderer, keyboard_layout, 
+                    &octave, &attack, &decay, &sustain, &release);
             else if (keyboard_input && event.type == SDL_KEYUP)
-                handle_release(event.key.keysym.sym, &synth, keyboard_layout, &n_voices, octave);
+                handle_release(event.key.keysym.sym, &synth, renderer, keyboard_layout, octave);
         }
 
         if (midi_input)
-            get_midi(midi_in, &synth, &n_voices, &attack, &decay, &sustain, &release);
+            get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
 
-        render_synth(&synth, buffer, n_voices);
+        render_synth(&synth, buffer);
 
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE)
+        {
+            fprintf(stderr, "ALSA underrun!\n");
             snd_pcm_prepare(handle);
+        }
         else if (err < 0)
+        {
+            fprintf(stderr, "ALSA write error: %s\n", snd_strerror(err));
             snd_pcm_prepare(handle);
-        
+        }
+
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderClear(renderer);
-        render_infos(synth, font, renderer, 
-            attack, decay, sustain, release);
+        SDL_Rect outside_key = {.w = WIDTH, .h = HEIGHT - WHITE_KEYS_HEIGHT, .x = 0, .y = 0};
+        SDL_RenderFillRect(renderer, &outside_key);
+
+        render_infos(synth, font, renderer, attack, decay, sustain, release);
         render_waveform(renderer, buffer);
+
+        SDL_Rect keyboard_dest = {0, HEIGHT - WHITE_KEYS_HEIGHT, WIDTH, WHITE_KEYS_HEIGHT};
+        SDL_RenderCopy(renderer, keyboard_texture, NULL, &keyboard_dest);
+
+        for (int v = 0; v < VOICES; v++)
+            if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE)
+                render_key(renderer, synth.voices[v].note);
+        
         SDL_RenderPresent(renderer);
     }
 
-cleanup_midi:
-if (midi_in)
-    snd_rawmidi_close(midi_in);
+    if (midi_in)
+        snd_rawmidi_close(midi_in);
+
 cleanup_font:
     if (font)
         TTF_CloseFont(font);
     TTF_Quit();
+cleanup_texture:
+    if (keyboard_texture)
+        SDL_DestroyTexture(keyboard_texture);
 cleanup_renderer:
     if (renderer)
         SDL_DestroyRenderer(renderer);

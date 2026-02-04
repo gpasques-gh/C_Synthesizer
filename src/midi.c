@@ -4,7 +4,8 @@
 #include "synth.h"
 #include "midi.h"
 
-int get_midi(snd_rawmidi_t *midi_in, synth_t *synth, int *n_voices, double *attack, double *decay, double *sustain, double *release)
+int get_midi(snd_rawmidi_t *midi_in, synth_t *synth, 
+    double *attack, double *decay, double *sustain, double *release)
 {
     unsigned char midi_buffer[1024];
     ssize_t ret = snd_rawmidi_read(midi_in, midi_buffer, sizeof(midi_buffer));
@@ -20,47 +21,45 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth, int *n_voices, double *atta
 
         if ((status & PRESSED) == NOTE_ON && data2 > 0)
         {
+            for (int v = 0; v < VOICES; v++)
+            {
+                if (synth->voices[v].adsr->state == ENV_RELEASE)
+                {
+                    synth->voices[v].active = 0;
+                    synth->voices[v].adsr->state = ENV_IDLE;
+                    synth->voices[v].adsr->output = 0.0;
+                }
+            }
+
             voice_t *free_voice = get_free_voice(synth);
             if (free_voice == NULL) 
                 continue;
-            if (*n_voices < VOICES)
-                (*n_voices)++;
             change_freq(free_voice, data1, data2, synth->detune);
         }
         else if ((status & PRESSED) == NOTE_OFF ||
-                ((status & PRESSED)) == NOTE_ON && data2 == 0)
-        {
-            if (*n_voices >= 1)
-            {
-                int found = 0;
-                for (int v = 0; v < VOICES; v++)
+                ((status & PRESSED) == NOTE_ON && data2 == 0))
+            for (int v = 0; v < VOICES; v++) {
+                if (synth->voices[v].note == data1 && synth->voices[v].active)
                 {
-                    if (synth->voices[v].note == data1 && synth->voices[v].active)
-                    {
-                        synth->voices[v].adsr->state = ENV_RELEASE;
-                        found = 1;
-                        break;
-                    }
+                    synth->voices[v].adsr->state = ENV_RELEASE;
+                    break;
                 }
-                if (found && *n_voices > 0)
-                    (*n_voices)--;
             }
-        }
         else if ((status & PRESSED) == KNOB_TURNED)
         {
             switch (data1)
             {
                 case ARTURIA_ATT_KNOB:
-                    *attack = (double)data2 / MIDI_MAX_VALUE;
+                    *attack = ((double)data2 / MIDI_MAX_VALUE) * 2.0;
                     break;
                 case ARTURIA_DEC_KNOB:
-                    *decay = (double)data2 / MIDI_MAX_VALUE;
+                    *decay = ((double)data2 / MIDI_MAX_VALUE) * 2.0;
                     break;
                 case ARTURIA_SUS_KNOB:
                     *sustain = (double)data2 / MIDI_MAX_VALUE;
                     break;
                 case ARTURIA_REL_KNOB:
-                    *release = (double)data2 / MIDI_MAX_VALUE;
+                    *release = ((double)data2 / MIDI_MAX_VALUE) * 1.0;
                     break;
                 case ARTURIA_OSC_A_KNOB:
                     for (int v = 0; v < VOICES; v++)

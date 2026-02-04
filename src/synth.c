@@ -10,159 +10,135 @@ double adsr_process(adsr_t *adsr)
         case ENV_IDLE:
             break;
         case ENV_ATTACK:
-            adsr->output = adsr->output * *adsr->attack;
-            if (adsr->output >= 1.0)
+            if (*adsr->attack > 0.0)
+            {
+                double increment = 1.0 / (*adsr->attack * RATE);
+                adsr->output += increment;
+                if (adsr->output >= 1.0)
+                {
+                    adsr->output = 1.0;
+                    adsr->state = ENV_DECAY;
+                }
+            }
+            else
             {
                 adsr->output = 1.0;
                 adsr->state = ENV_DECAY;
             }
             break;
+            
         case ENV_DECAY:
-            adsr->output = adsr->output * *adsr->decay;
-            if (adsr->output <= *adsr->sustain)
+            if (*adsr->decay > 0.0)
+            {
+                double decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
+                adsr->output -= decrement;
+                if (adsr->output <= *adsr->sustain)
+                {
+                    adsr->output = *adsr->sustain;
+                    adsr->state = ENV_SUSTAIN;
+                }
+            }
+            else
             {
                 adsr->output = *adsr->sustain;
                 adsr->state = ENV_SUSTAIN;
             }
             break;
+            
         case ENV_SUSTAIN:
+            adsr->output = *adsr->sustain;
             break;
         case ENV_RELEASE:
-            adsr->output = adsr->output * *adsr->release;
-            if (adsr->output <= 0.0)
+            if (*adsr->release > 0.0)
+            {
+                double decrement = adsr->output / (*adsr->release * RATE);
+                adsr->output -= decrement;
+                if (adsr->output <= 0.001)
+                {
+                    adsr->output = 0.0;
+                    adsr->state = ENV_IDLE;
+                }
+            }
+            else
             {
                 adsr->output = 0.0;
                 adsr->state = ENV_IDLE;
             }
+            break;
     }
     return adsr->output;
 }
 
-void render_sine(osc_t *osc, short *buffer, int amp)
+void render_synth(synth_t *synth, short *buffer)
 {
-    double phase_inc = osc->freq / RATE;
-    for (int i = 0; i < FRAMES; i++)
+    double temp_buffer[FRAMES];
+    memset(temp_buffer, 0, FRAMES * sizeof(double));
+    
+    for (int v = 0; v < VOICES; v++)
     {
-        double sample = sin(2.0 * M_PI * osc->phase);
-        buffer[i] = (short)(sample * amp);
-        osc->phase += phase_inc;
-        if (osc->phase >= 1.0) osc->phase -= 1.0;
-    }
-}
+        voice_t *voice = &synth->voices[v];
+        
+        if (!voice->active)
+            continue;
+        
+        for (int i = 0; i < FRAMES; i++)
+        {
+            double envelope = adsr_process(voice->adsr);
+            double mixed = 0.0;
 
-void render_square(osc_t *osc, short *buffer, int amp)
-{
-    double phase_inc = osc->freq / RATE;
-    for (int i = 0; i < FRAMES; i++)
-    {
-        double sample = (osc->phase < 0.5) ? 1.0 : -1.0;
-        buffer[i] = (short)(sample * amp);
-        osc->phase += phase_inc;
-        if (osc->phase >= 1.0) osc->phase -= 1.0;
-    }
-}
+            for (int o = 0; o < 3; o++)
+            {
+                osc_t *osc = &voice->oscillators[o];
+                double phase_inc = osc->freq / RATE;
+                double sample;
 
-void render_triangle(osc_t *osc, short *buffer, int amp)
-{
-    double phase_inc = osc->freq / RATE;
-    for (int i = 0; i < FRAMES; i++)
-    {
-        double sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
-        buffer[i] = (short)(sample * amp);
-        osc->phase += phase_inc;
-        if (osc->phase >= 1.0) osc->phase -= 1.0;
+                switch(osc->wave)
+                {
+                    case SINE_WAVE:
+                        sample = sin(2.0 * M_PI * osc->phase);
+                        break;
+                    case SQUARE_WAVE:
+                        sample = (osc->phase < 0.5) ? 1.0 : -1.0;
+                        break;
+                    case TRIANGLE_WAVE:
+                        sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
+                        break;
+                    case SAWTOOTH_WAVE:
+                        sample = 2.0 * osc->phase - 1.0;
+                        break;
+                    default:
+                        sample = 0.0;
+                }
+                
+                mixed += sample;
+                osc->phase += phase_inc;
+                if (osc->phase >= 1.0) osc->phase -= 1.0;
+            }
+            
+            mixed /= 3.0;
+            mixed *= envelope;
+            mixed *= voice->velocity_amp;
+            temp_buffer[i] += mixed;
+        }
+        
+        if (voice->adsr->state == ENV_IDLE)
+            voice->active = 0;
     }
-}
-
-void render_sawtooth(osc_t *osc, short *buffer, int amp)
-{
-    double phase_inc = osc->freq / RATE;
-    for (int i = 0; i < FRAMES; i++)
-    {
-        double sample = 2.0 * osc->phase - 1.0;
-        buffer[i] = (short)(sample * amp);
-        osc->phase += phase_inc;
-        if (osc->phase >= 1.0) osc->phase -= 1.0;
-    }
-}
-
-void render_osc(osc_t *osc, short *buffer, int amp)
-{
-    switch(osc->wave)
-    {
-        case SINE_WAVE:
-            render_sine(osc, buffer, amp);
-            break;
-        case SQUARE_WAVE:
-            render_square(osc, buffer, amp);
-            break;
-        case TRIANGLE_WAVE:
-            render_triangle(osc, buffer, amp);
-            break;
-        case SAWTOOTH_WAVE:
-            render_sawtooth(osc, buffer, amp);
-            break;
-        default:
-            memset(buffer, 0, FRAMES * sizeof(short));
-            break;
-    }
-}
-
-void render_voice(voice_t *voice, short *buffer, int amp)
-{
-    if (!voice->active)
-    {
-        memset(buffer, 0, FRAMES * sizeof(short));
-        return;
-    }
-
-    short osc_buffers[3][FRAMES];
-    for (int i = 0; i < 3; i++)
-        render_osc(&voice->oscillators[i], osc_buffers[i], amp);
 
     for (int i = 0; i < FRAMES; i++)
     {
-        double envelope = adsr_process(voice->adsr);
-        double mixed = (double)osc_buffers[0][i] +
-                       (double)osc_buffers[1][i] +
-                       (double)osc_buffers[2][i];
-        mixed /= 3.0;
-        mixed *= envelope;
-        mixed *= voice->velocity_amp;
-
-        if (mixed > 32767.0) mixed = 32767.0;
-        if (mixed < -32768.0) mixed = -32768.0;
-        buffer[i] = (short)mixed;
-    }
-}
-
-void render_synth(synth_t *synth, short *buffer, int n_voices)
-{
-    if (n_voices == 0)
-    {
-        memset(buffer, 0, FRAMES * sizeof(short));
-        return;
-    }
-
-    short voices_buffers[VOICES][FRAMES];
-    for (int i = 0; i < VOICES; i++)
-        render_voice(&synth->voices[i], voices_buffers[i], synth->amp);
-
-    for (int i = 0; i < FRAMES; i++)
-    {
-        double mixed = 0.0;
-        for (int v = 0; v < VOICES; v++)
-            mixed += voices_buffers[v][i];
-        mixed /= 6;
-        mixed = lp_process(synth->filter, mixed);
-        if (mixed > 32767.0) mixed = 32767.0;
-        if (mixed < -32768.0) mixed = -32768.0;
-        buffer[i] = (short)mixed;
+        double sample = temp_buffer[i];
+        sample *= synth->amp;
+        sample = lp_process(synth->filter, (short)sample);
+        
+        if (sample > 32767.0) sample = 32767.0;
+        if (sample < -32768.0) sample = -32768.0;
+        buffer[i] = (short)sample;
     }
 }
 
 void change_freq(voice_t *voice, int note, int velocity, double detune)
-{
+{ 
     int a4_diff = note - A4_POSITION;
 
     voice->note = note;
@@ -173,9 +149,9 @@ void change_freq(voice_t *voice, int note, int velocity, double detune)
 
     voice->oscillators[0].freq = A_4 * pow(2, a4_diff / 12.0);
     voice->oscillators[0].phase = 0.0;
-    voice->oscillators[1].freq = A_4 * pow(2, a4_diff / 12.0);
+    voice->oscillators[1].freq = A_4 * pow(2, a4_diff / 12.0) + (5 * detune);
     voice->oscillators[1].phase = 0.0;
-    voice->oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0);
+    voice->oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0) - (5 * detune);
     voice->oscillators[2].phase = 0.0;
 }
 

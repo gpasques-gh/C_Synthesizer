@@ -63,7 +63,7 @@ void render_waveform(SDL_Renderer *renderer, short *buffer)
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
     int mid_y = HEIGHT / 2;
-    for (int i = 0; i < FRAMES; i++) 
+    for (int i = 0; i < FRAMES - 1; i++) 
     {
         int x1 = (i * WIDTH) / FRAMES;
         int x2 = ((i + 1) * WIDTH) / FRAMES;
@@ -74,3 +74,92 @@ void render_waveform(SDL_Renderer *renderer, short *buffer)
         SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
     }
 }
+
+void render_keyboard_base(SDL_Renderer *renderer)
+{
+    char black_keys_pattern[] = {1, 1, 0, 1, 1, 1, 0, 0};
+
+    for (int i = 0; i < WHITE_KEYS; i++)
+    {
+        SDL_Rect key = 
+        {
+            .h = WHITE_KEYS_HEIGHT,
+            .w = WHITE_KEYS_WIDTH,
+            .x = i * WHITE_KEYS_WIDTH,
+            .y = 0
+        };
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderFillRect(renderer, &key);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderDrawRect(renderer, &key);
+    }
+
+
+    int white_key_index = 0;
+    for (int octave = 0; octave < (WHITE_KEYS / 7); octave++)
+    {
+        for (int i = 0; i < 7; i++)
+        {
+            if (black_keys_pattern[i])
+            {
+                int x = (white_key_index * WHITE_KEYS_WIDTH) + WHITE_KEYS_WIDTH - (BLACK_KEYS_WIDTH / 2);
+                SDL_Rect black_key = {
+                    .h = BLACK_KEYS_HEIGHT,
+                    .w = BLACK_KEYS_WIDTH,
+                    .x = x,
+                    .y = 0
+                };
+                SDL_RenderFillRect(renderer, &black_key);
+            }
+            white_key_index++;
+            if (white_key_index >= WHITE_KEYS) break;
+        }
+        if (white_key_index >= WHITE_KEYS) break;
+    }
+}
+
+void get_key_position(int midi_note, int *x, int *y, int *width, int *height, int *is_black)
+{
+    int note_in_octave = midi_note % 12;
+    int octave = midi_note / 12;
+
+    static const int black_keys[] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
+    *is_black = black_keys[note_in_octave];
+
+    static const int white_key_map[] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
+    int white_key_in_octave = white_key_map[note_in_octave];
+
+    int white_key_index = (octave * 7) + white_key_in_octave;
+    
+    if (*is_black)
+    {
+        *width = WHITE_KEYS_WIDTH / 2;
+        *height = (WHITE_KEYS_HEIGHT * 2) / 3;
+        *x = (white_key_index * WHITE_KEYS_WIDTH) + WHITE_KEYS_WIDTH - (*width / 2);
+        *y = HEIGHT - WHITE_KEYS_HEIGHT;
+    }
+    else
+    {
+        *width = WHITE_KEYS_WIDTH;
+        *height = WHITE_KEYS_HEIGHT;
+        *x = white_key_index * WHITE_KEYS_WIDTH;
+        *y = HEIGHT - WHITE_KEYS_HEIGHT;
+    }
+}
+
+
+void render_key(SDL_Renderer *renderer, int midi_note) {
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    int width = 0, height = 0, x = 0, y = 0, is_black = 0;
+    get_key_position(midi_note, &x, &y, &width, &height, &is_black);
+
+    SDL_Rect key =
+    {
+        .h = height,
+        .w = width,
+        .x = x,
+        .y = y
+    };
+
+    SDL_RenderFillRect(renderer, &key);
+}   

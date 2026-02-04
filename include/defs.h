@@ -4,18 +4,18 @@
 #include <SDL2/SDL.h>
 
 // NOTES SEMITONES
-#define nC 1
-#define nC_SHARP 2
-#define nD 3
-#define nD_SHARP 4
-#define nE 5
-#define nF 6
-#define nF_SHARP 7
-#define nG 8
-#define nG_SHARP 9
-#define nA 10
-#define nA_SHARP 11
-#define nB 12
+#define nC 0
+#define nC_SHARP 1
+#define nD 2
+#define nD_SHARP 3
+#define nE 4
+#define nF 5
+#define nF_SHARP 6
+#define nG 7
+#define nG_SHARP 8
+#define nA 9
+#define nA_SHARP 10
+#define nB 11
 
 // KEYBOARD INPUT
 #define QWERTY 0
@@ -93,10 +93,19 @@
 #define DEFAULT_AMPLITUDE 6000
 #define MAX_AMPLITUDE DEFAULT_AMPLITUDE * 2
 #define RATE 44100
-#define LATENCY 30000
+#define LATENCY 100000
 
 // INTERFACE
 #define WIDTH 1200
 #define HEIGHT 800
+
+#define WHITE_KEYS 36
+#define BLACK_KEYS 25
+
+#define WHITE_KEYS_WIDTH WIDTH / WHITE_KEYS
+#define WHITE_KEYS_HEIGHT HEIGHT / 4
+
+#define BLACK_KEYS_WIDTH WHITE_KEYS_WIDTH / 2
+#define BLACK_KEYS_HEIGHT (WHITE_KEYS_HEIGHT * 2) / 3
 
 #endif

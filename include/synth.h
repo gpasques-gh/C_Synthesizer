@@ -53,13 +53,7 @@ const char *get_wave_name(int wave);
 voice_t *get_free_voice(synth_t *synth);
 
 // WAVEFORM RENDERING
-void render_osc(osc_t *osc, short *buffer, int amp);
-void render_sine(osc_t *osc, short *buffer, int amp);
-void render_triangle(osc_t *osc, short *buffer, int amp);
-void render_square(osc_t *osc, short *buffer, int amp);
-void render_sawtooth(osc_t *osc, short *buffer, int amp);
-void render_voice(voice_t *voice, short *buffer, int amp);
-void render_synth(synth_t *synth, short *buffer, int n_voices);
+void render_synth(synth_t *synth, short *buffer);
 
 // SOUND PROCESSING
 double adsr_process(adsr_t *adsr);
