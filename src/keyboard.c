@@ -96,9 +96,17 @@ void handle_input(SDL_Keycode key, synth_t *synth, int layout, int *octave,
         break;
     case SDLK_UP:
         (*octave)++;
+        for (int v = 0; v < VOICES; v++)
+        {
+            synth->voices[v].adsr->state = ENV_RELEASE;
+        }  
         break;
     case SDLK_DOWN:
         (*octave)--;
+        for (int v = 0; v < VOICES; v++)
+        {
+            synth->voices[v].adsr->state = ENV_RELEASE;
+        }
         break;
     default:
         break;

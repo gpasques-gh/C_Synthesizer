@@ -82,10 +82,8 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
                     synth->voices[v].oscillators[2].wave = (int)((data2 * 4) / (MIDI_MAX_VALUE + 1));
                 break;
             case ARTURIA_CUTOFF_KNOB:
-            {
                 synth->filter->cutoff = ((double)data2 / MIDI_MAX_VALUE);
                 break;
-            }
             case ARTURIA_DETUNE_KNOB:
                 synth->detune = ((double)data2 / MIDI_MAX_VALUE);
                 apply_detune_change(synth);
