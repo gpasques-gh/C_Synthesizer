@@ -34,24 +34,55 @@ double adsr_process(adsr_t *adsr)
     case ENV_DECAY:
         if (*adsr->decay > 0.0)
         {
-            double decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
-            adsr->output -= decrement;
-            if (adsr->output <= *adsr->sustain)
+            if (*adsr->sustain > 0.0)
+            {
+                double decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
+                adsr->output -= decrement;
+        
+                if (adsr->output <= *adsr->sustain)
+                {
+                    adsr->output = *adsr->sustain;
+                    adsr->state = ENV_SUSTAIN;
+                }
+            }
+            else
+            {
+                double decrement = (1.0 - *adsr->release) / (*adsr->decay * RATE);
+                adsr->output -= decrement;
+        
+                if (adsr->output <= *adsr->release && adsr->release)
+                {
+                    adsr->output = *adsr->release;
+                    adsr->state = ENV_RELEASE;
+                }
+            }
+            
+        }
+        else
+        {
+            if (*adsr->sustain > 0.0)
             {
                 adsr->output = *adsr->sustain;
                 adsr->state = ENV_SUSTAIN;
             }
-        }
-        else
-        {
-            adsr->output = *adsr->sustain;
-            adsr->state = ENV_SUSTAIN;
+            else 
+            {
+                adsr->output = *adsr->release;
+                adsr->state = ENV_RELEASE;
+            }
         }
         break;
     case ENV_SUSTAIN:
-        adsr->output = *adsr->sustain;
+        
         if (*adsr->sustain == 0.0)
+        {
+            fprintf(stderr, "test output: %.2f\n", adsr->output);
+            double decrement = adsr->output / (*adsr->release * RATE);
+            adsr->output -= decrement;
             adsr->state = ENV_RELEASE;
+            
+        }
+        else adsr->output = *adsr->sustain;
         break;
     case ENV_RELEASE:
         if (*adsr->release > 0.0)
@@ -150,12 +181,9 @@ void render_synth(synth_t *synth, short *buffer)
                       ? 1.0 / sqrt((double)active_voices)
                       : 0.0;
 
-    if (active_voices == 0 || active_voices == released_voices)
-        synth->filter->adsr->state = ENV_RELEASE;
-
     for (int i = 0; i < FRAMES; i++)
     {
-        double env_cutoff = synth->filter->cutoff + (synth->filter->cutoff * adsr_process(synth->filter->adsr));
+        double env_cutoff = synth->filter->cutoff + adsr_process(synth->filter->adsr) / 2;
         if (env_cutoff > 1.0) env_cutoff = 1.0;
     
         double sample = temp_buffer[i] * gain;
@@ -230,7 +258,7 @@ double lp_process(lp_filter_t *filter, double input, float cutoff)
     if (cutoff > 1.0f) cutoff = 1.0f;
     if (cutoff < 0.0f) cutoff = 0.0f;
 
-    float frequency = cutoff * (RATE / 2.0f);
+    float frequency = cutoff * (RATE / 8.0f);
     float omega = 2.0f * M_PI * frequency / RATE;
     float alpha = omega / (omega + 1.0f);
     

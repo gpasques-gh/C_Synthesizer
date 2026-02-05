@@ -42,9 +42,7 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
             if (free_voice == NULL)
                 continue;
             change_freq(free_voice, data1, data2, synth->detune);
-            if (synth->filter->adsr->state == ENV_IDLE ||
-                synth->filter->adsr->state == ENV_RELEASE)
-                synth->filter->adsr->state = ENV_ATTACK;
+            synth->filter->adsr->state = ENV_ATTACK;
         }
         else if ((status & PRESSED) == NOTE_OFF ||
                  ((status & PRESSED) == NOTE_ON && data2 == 0))

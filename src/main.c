@@ -85,9 +85,9 @@ int main(int argc, char **argv)
     double sustain = 0.7;
     double release = 0.2;
 
-    double filter_attack = 0.2;
+    double filter_attack = 0.0;
     double filter_decay = 0.3;
-    double filter_sustain = 0.6;
+    double filter_sustain = 0.0;
     double filter_release = 0.2;
 
     adsr_t filter_adsr =
