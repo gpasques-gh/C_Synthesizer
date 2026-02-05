@@ -7,7 +7,7 @@ Not tested, but MIDI can maybe work in a Linux VM using USB passthrough, althoug
 - 3 oscillator synthesizer
 - Up to 6 note polyphony
 - ADSR envelope
-- Low pass filter
+- Low pass filter with ADSR envelope
 - Detune
 - Keyboard input
 - MIDI input
