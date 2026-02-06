@@ -14,7 +14,7 @@ Not tested, but MIDI can maybe work in a Linux VM using USB passthrough, althoug
 - Raygui graphical user interface
 
 # GUI 🖼️
-The GUI shows the basic informations about the synth and let the user configure the synth graphically :
+The GUI shows all of the informations about the synth and let the user configure its parameters graphically :
 - Waveform of the sound output
 - ADSR envelope parameters level
 - Filter ADSR envelope parameters level
@@ -34,8 +34,6 @@ You can set the keyboard layout to be either QWERTY or  AZERTY.
 The keyboard simulates a "real" piano keyboard, starting from `a` (`q` in AZERTY) to `j`.  
 The up arrow key move the keys up an octave and the down arrow key move the keys down an octave.  
 
-
-
 # Dependencies 💻
 pulseaudio  
 libasound-dev  
@@ -49,4 +47,6 @@ To run the synth with keyboard input and a specific keyboard layout : `./bin/syn
 To run the synth with MIDI input : `./bin/synth -midi midi device hardware id>` (you can get this id by using the amidi -l command)
 The MIDI input was only tested with an Arturia Keylab Essential 61, the keyboard itself should work, but knobs CC values may be off for your keyboard, you can change them in midi.h. 
   
+# Contribute & feedback
 Don't hesitate to give feedback and contribute to the project!
+And if you encounter any bug (and you probably will), please report them to me if you have the time!
