@@ -7,7 +7,7 @@
  * Process a sample from the ADSR envelope
  * Returns the envelope amplification coeficient
  */
-double adsr_process(adsr_t *adsr)
+float adsr_process(adsr_t *adsr)
 {
     switch (adsr->state)
     {
@@ -36,7 +36,7 @@ double adsr_process(adsr_t *adsr)
         {
             if (*adsr->sustain > 0.0)
             {   /* Decrement the amplification by the decay amount relatively to the sustain amount */
-                double decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
+                float decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
                 adsr->output -= decrement;
         
                 if (adsr->output <= *adsr->sustain)
@@ -47,7 +47,7 @@ double adsr_process(adsr_t *adsr)
             }
             else
             {   /* Decrement the amplification by the decay amount relatively to the release amount */
-                double decrement = (1.0 - *adsr->release) / (*adsr->decay * RATE);
+                float decrement = (1.0 - *adsr->release) / (*adsr->decay * RATE);
                 adsr->output -= decrement;
         
                 if (adsr->output <= *adsr->release && adsr->release)
@@ -76,7 +76,7 @@ double adsr_process(adsr_t *adsr)
         
         if (*adsr->sustain == 0.0)
         {   /* Increment the amplification by the attack amount */
-            double decrement = adsr->output / (*adsr->release * RATE);
+            float decrement = adsr->output / (*adsr->release * RATE);
             adsr->output -= decrement;
             adsr->state = ENV_RELEASE;
             
@@ -86,7 +86,7 @@ double adsr_process(adsr_t *adsr)
     case ENV_RELEASE:
         if (*adsr->release > 0.0)
         {   /* Decrement the amplification by the release amount */
-            double decrement = adsr->output / (*adsr->release * RATE);
+            float decrement = adsr->output / (*adsr->release * RATE);
             adsr->output -= decrement;
             if (adsr->output <= 0.001)
             {
@@ -121,7 +121,7 @@ void render_synth(synth_t *synth, short *buffer)
 
         for (int i = 0; i < FRAMES; i++)
         { /* Oscillators processing for each voice*/
-            double envelope = adsr_process(voice->adsr);
+            float envelope = adsr_process(voice->adsr);
             double mixed = 0.0;
 
             for (int o = 0; o < 3; o++)

@@ -4,11 +4,12 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#include "defs.h"
+#define RAYGUI_IMPLEMENTATION
+
+#include "interface.h"
 #include "synth.h"
 #include "midi.h"
 #include "keyboard.h"
-#include "interface.h"
 
 /* Prints the usage of the CLI arguments into the error output */
 void usage()
@@ -29,9 +30,6 @@ int main(int argc, char **argv)
     }
 
     snd_pcm_t *handle = NULL;
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-    TTF_Font *font = NULL;
     snd_rawmidi_t *midi_in = NULL;
 
     char midi_device[256];
@@ -80,15 +78,15 @@ int main(int argc, char **argv)
 
     int octave = DEFAULT_OCTAVE;
 
-    double attack = 0.2;
-    double decay = 0.3;
-    double sustain = 0.7;
-    double release = 0.2;
+    float attack = 0.2;
+    float decay = 0.3;
+    float sustain = 0.7;
+    float release = 0.2;
 
-    double filter_attack = 0.0;
-    double filter_decay = 0.3;
-    double filter_sustain = 0.0;
-    double filter_release = 0.2;
+    float filter_attack = 0.0;
+    float filter_decay = 0.3;
+    float filter_sustain = 0.0;
+    float filter_release = 0.2;
 
     adsr_t filter_adsr =
     {
@@ -158,6 +156,8 @@ int main(int argc, char **argv)
         }
     }
 
+    
+
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
         fprintf(stderr, "error while opening sound card.\n");
@@ -186,90 +186,50 @@ int main(int argc, char **argv)
         snd_pcm_writei(handle, buffer, FRAMES);
     }
 
-    window = SDL_CreateWindow(
-        "ALSA Synth", 0, 0,
-        WIDTH, HEIGHT,
-        SDL_WINDOW_SHOWN);
-    if (window == NULL)
-    {
-        fprintf(stderr, "error while creating SDL window.\n");
-        goto cleanup_alsa;
-    }
-
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == NULL)
-    {
-        fprintf(stderr, "error while creating SDL renderer.\n");
-        goto cleanup_window;
-    }
-
-    SDL_Texture *white_keys_texture = SDL_CreateTexture(renderer,
-                                                        SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-                                                        WIDTH, WHITE_KEYS_HEIGHT);
-
-    if (white_keys_texture == NULL)
-    {
-        fprintf(stderr, "error while creating keyboard texture: %s\n", SDL_GetError());
-        goto cleanup_renderer;
-    }
-
-    SDL_SetTextureBlendMode(white_keys_texture, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderTarget(renderer, white_keys_texture);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderClear(renderer);
-    render_white_keys(renderer);
-    SDL_SetRenderTarget(renderer, NULL);
-
-    SDL_Texture *black_keys_texture = SDL_CreateTexture(renderer,
-                                                        SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-                                                        WIDTH, WHITE_KEYS_HEIGHT);
-
-    if (black_keys_texture == NULL)
-    {
-        fprintf(stderr, "error while creating keyboard texture: %s\n", SDL_GetError());
-        goto cleanup_white_keys_texture;
-    }
-
-    SDL_SetTextureBlendMode(black_keys_texture, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderTarget(renderer, black_keys_texture);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderClear(renderer);
-    render_black_keys(renderer);
-    SDL_SetRenderTarget(renderer, NULL);
-
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_Event event;
-
-    TTF_Init();
-    font = TTF_OpenFont("Regular.ttf", 24);
-    if (font == NULL)
-    {
-        fprintf(stderr, "error while loading font: %s\n", TTF_GetError());
-        goto cleanup_black_keys_texture;
-    }
-
+    
     if (midi_input)
         if (snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK) < 0)
         {
             fprintf(stderr, "error while opening midi device %s\n", midi_device);
-            goto cleanup_font;
+            goto cleanup_alsa;
         }
 
-    int running = 1;
-    while (running)
+
+    int dropbox_a = 0, dropbox_b = 0, dropbox_c = 0;
+    bool dropbox_a_b = false, dropbox_b_b = false, dropbox_c_b = false;
+
+    params_t params =
     {
-        while (SDL_PollEvent(&event) != 0)
+        .attack = &attack,
+        .decay = &decay,
+        .sustain = &sustain,
+        .release = &release,
+        .filter_envelope = filter.adsr,
+        .synth = &synth,
+        .dropbox_a = &dropbox_a,
+        .dropbox_b = &dropbox_b,
+        .dropbox_c = &dropbox_c,
+        .dropbox_a_b = &dropbox_a_b,
+        .dropbox_b_b = &dropbox_b_b,
+        .dropbox_c_b = &dropbox_c_b
+    };
+    
+    InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
+    int show_message_box = 0;
+
+    while (!WindowShouldClose())
+    {
+        BeginDrawing();
+        ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
+        render_informations(&params);
+        
+
+        if (keyboard_input)
         {
-            if (event.type == SDL_QUIT)
-                running = 0;
-            else if (keyboard_input &&
-                     event.type == SDL_KEYDOWN &&
-                     event.key.repeat == 0)
-                handle_input(event.key.keysym.sym, &synth, keyboard_layout,
-                             &octave, &attack, &decay, &sustain, &release);
-            else if (keyboard_input && event.type == SDL_KEYUP)
-                handle_release(event.key.keysym.sym, &synth, keyboard_layout, octave);
+            handle_input(&synth, keyboard_layout, &octave);
+            handle_release(&synth, keyboard_input, &octave);
         }
+        
 
         if (midi_input)
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
@@ -288,51 +248,15 @@ int main(int argc, char **argv)
             snd_pcm_prepare(handle);
         }
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_Rect outside_key = {.w = WIDTH, .h = HEIGHT - WHITE_KEYS_HEIGHT, .x = 0, .y = 0};
-        SDL_RenderFillRect(renderer, &outside_key);
+        render_waveform(buffer);
+        EndDrawing();
 
-        render_infos(synth, font, renderer, attack, decay, sustain, release);
-        render_waveform(renderer, buffer);
-
-        SDL_Rect keyboard_dest = {0, HEIGHT - WHITE_KEYS_HEIGHT, WIDTH, WHITE_KEYS_HEIGHT};
-        SDL_RenderCopy(renderer, white_keys_texture, NULL, &keyboard_dest);
-
-        for (int v = 0; v < VOICES; v++)
-            if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
-                render_key(renderer, synth.voices[v].note);
-
-        SDL_RenderCopy(renderer, black_keys_texture, NULL, &keyboard_dest);
-
-        for (int v = 0; v < VOICES; v++)
-            if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
-                render_key(renderer, synth.voices[v].note);
-
-        SDL_RenderPresent(renderer);
+       
     }
 
     if (midi_in)
         snd_rawmidi_close(midi_in);
 
-    cleanup_text_cache();
-
-cleanup_font:
-    if (font)
-        TTF_CloseFont(font);
-    TTF_Quit();
-cleanup_black_keys_texture:
-    if (black_keys_texture)
-        SDL_DestroyTexture(black_keys_texture);
-cleanup_white_keys_texture:
-    if (white_keys_texture)
-        SDL_DestroyTexture(white_keys_texture);
-cleanup_renderer:
-    if (renderer)
-        SDL_DestroyRenderer(renderer);
-cleanup_window:
-    if (window)
-        SDL_DestroyWindow(window);
-    SDL_Quit();
 cleanup_alsa:
     if (handle)
     {

@@ -1,6 +1,8 @@
 #ifndef SYNTH_H
 #define SYNTH_H
 
+#include <stdbool.h>
+
 #include "defs.h"
 
 /* ADSR envelope states */
@@ -21,8 +23,8 @@ typedef enum
  */
 typedef struct
 {
-    double *attack, *decay, *sustain, *release;
-    double output;
+    float *attack, *decay, *sustain, *release;
+    float output;
     env_state_t state;
 } adsr_t;
 
@@ -41,6 +43,7 @@ typedef struct
 {
     float prev_input, prev_output, cutoff, env_cutoff;
     adsr_t *adsr;
+    bool env;
 } lp_filter_t;
 
 /*
@@ -75,7 +78,7 @@ typedef struct
  * Process a sample from the ADSR envelope
  * Returns the envelope amplification coeficient
  */
-double adsr_process(adsr_t *adsr);
+float adsr_process(adsr_t *adsr);
 
 /* Renders the synth_t voices into the temporary sound buffer */
 void render_synth(synth_t *synth, short *buffer);

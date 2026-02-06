@@ -1,6 +1,6 @@
 #ifndef DEFS_H
 #define DEFS_H
-
+#include <raylib.h>
 #include <SDL2/SDL.h>
 
 /* Notes semitones used for keyboard input */
@@ -22,37 +22,20 @@
 #define AZERTY 1
 
 /* Keyboard note keys */
-#define kC_QWERTY SDLK_a
-#define kC_AZERTY SDLK_q
-#define kC_SHARP_QWERTY SDLK_w
-#define kC_SHARP_AZERTY SDLK_z
-#define kD SDLK_s
-#define kD_SHARP SDLK_e
-#define kE SDLK_d
-#define kF SDLK_f
-#define kF_SHARP SDLK_t
-#define kG SDLK_g
-#define kG_SHARP SDLK_y
-#define kA SDLK_h
-#define kA_SHARP SDLK_u
-#define kB SDLK_j
-
-/* Keyboard oscillators waveforms control keys */
-#define OSC_A_WAVE_INCREMENT SDLK_1
-#define OSC_B_WAVE_INCREMENT SDLK_2
-#define OSC_C_WAVE_INCREMENT SDLK_3
-
-/* Keyboard synthesizer parameters control keys */
-#define AMPLITUDE_INCREMENT SDLK_4
-#define CUTOFF_INCREMENT SDLK_5
-#define DETUNE_INCREMENT SDLK_6
-
-/* Keyboard ADSR envelope parameters control keys */
-#define ATTACK_INCREMENT_QWERTY SDLK_z
-#define ATTACK_INCREMENT_AZERTY SDLK_w
-#define DECAY_INCREMENT SDLK_x
-#define SUSTAIN_INCREMENT SDLK_c
-#define RELEASE_INCREMENT SDLK_v
+#define kC_QWERTY KEY_A
+#define kC_AZERTY KEY_Q
+#define kC_SHARP_QWERTY KEY_W
+#define kC_SHARP_AZERTY KEY_Z
+#define kD KEY_S
+#define kD_SHARP KEY_E
+#define kE KEY_D
+#define kF KEY_F
+#define kF_SHARP KEY_T
+#define kG KEY_G
+#define kG_SHARP KEY_Y
+#define kA KEY_H
+#define kA_SHARP KEY_U
+#define kB KEY_J
 
 /* MIDI packets informations */
 #define MIDI_MAX_VALUE 127.0
@@ -100,6 +83,7 @@
 #define WIDTH 1200
 #define HEIGHT 800
 #define TITLE "ALSA & SDL Synthesizer"
+
 
 /* MIDI piano visualizer */
 #define WHITE_KEYS 52
