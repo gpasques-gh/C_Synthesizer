@@ -23,7 +23,7 @@ void handle_input(SDL_Keycode key, synth_t *synth, int layout, int *octave,
         for (int v = 0; v < VOICES; v++) 
         {
             
-            if (synth->voices->active && synth->voices[v].adsr->state != ENV_RELEASE)
+            if (synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
                 active_voices++;
             
             if (synth->voices[v].adsr->state == ENV_RELEASE)

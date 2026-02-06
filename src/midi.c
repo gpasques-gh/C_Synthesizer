@@ -32,7 +32,7 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
 
             for (int v = 0; v < VOICES; v++)
             {   /* Cutting released voices to avoid some voices getting blocked */
-                if (synth->voices->active && synth->voices[v].adsr->state != ENV_RELEASE)
+                if (synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
                     active_voices++;
                 
                 if (synth->voices[v].adsr->state == ENV_RELEASE)
