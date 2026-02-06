@@ -13,7 +13,7 @@
  */
 int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
              double *attack, double *decay, double *sustain, double *release)
-{
+{   /* Reading the MIDI stream */
     unsigned char midi_buffer[1024];
     ssize_t ret = snd_rawmidi_read(midi_in, midi_buffer, sizeof(midi_buffer));
 
@@ -21,15 +21,20 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
         return 1;
 
     for (int i = 0; i + 2 < ret; i += 3)
-    {
+    {   /* Getting the MIDI bytes informations */
         unsigned char status = midi_buffer[i];
         unsigned char data1 = midi_buffer[i + 1];
         unsigned char data2 = midi_buffer[i + 2];
 
         if ((status & PRESSED) == NOTE_ON && data2 > 0)
         {
+            int active_voices = 0;
+
             for (int v = 0; v < VOICES; v++)
-            {
+            {   /* Cutting released voices to avoid some voices getting blocked */
+                if (synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
+                    active_voices++;
+                
                 if (synth->voices[v].adsr->state == ENV_RELEASE)
                 {
                     synth->voices[v].active = 0;
@@ -42,6 +47,9 @@ int get_midi(snd_rawmidi_t *midi_in, synth_t *synth,
             if (free_voice == NULL)
                 continue;
             change_freq(free_voice, data1, data2, synth->detune);
+            if (active_voices == 0)
+                /* If no voices are active or in release state, start the filter envelope */
+                synth->filter->adsr->state = ENV_ATTACK;
         }
         else if ((status & PRESSED) == NOTE_OFF ||
                  ((status & PRESSED) == NOTE_ON && data2 == 0))

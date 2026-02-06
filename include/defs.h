@@ -63,19 +63,19 @@
 
 /* CC Values for the Arturia Keylab Essential 61 knobs */
 /* ADSR parameters knobs */
-#define ARTURIA_ATT_KNOB 73
-#define ARTURIA_DEC_KNOB 75
-#define ARTURIA_SUS_KNOB 79
-#define ARTURIA_REL_KNOB 72
+#define ARTURIA_ATT_KNOB 1
+#define ARTURIA_DEC_KNOB 2
+#define ARTURIA_SUS_KNOB 3
+#define ARTURIA_REL_KNOB 18
 
 /* Oscillators waveforms knobs */
-#define ARTURIA_OSC_A_KNOB 80
-#define ARTURIA_OSC_B_KNOB 81
-#define ARTURIA_OSC_C_KNOB 82
+#define ARTURIA_OSC_A_KNOB 5
+#define ARTURIA_OSC_B_KNOB 6
+#define ARTURIA_OSC_C_KNOB 7
 
 /* Synthesizer parameters knobs */
-#define ARTURIA_CUTOFF_KNOB 74
-#define ARTURIA_DETUNE_KNOB 71
+#define ARTURIA_CUTOFF_KNOB 8
+#define ARTURIA_DETUNE_KNOB 4
 #define ARTURIA_AMPLITUDE_KNOB 85
 
 /* Note and synth related */

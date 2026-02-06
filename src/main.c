@@ -80,17 +80,31 @@ int main(int argc, char **argv)
 
     int octave = DEFAULT_OCTAVE;
 
-    lp_filter_t filter =
-    {
-        .cutoff = 0.5,
-        .prev_input = 0.0,
-        .prev_output = 0.0
-    };
-
     double attack = 0.2;
     double decay = 0.3;
     double sustain = 0.7;
     double release = 0.2;
+
+    double filter_attack = 0.0;
+    double filter_decay = 0.3;
+    double filter_sustain = 0.0;
+    double filter_release = 0.2;
+
+    adsr_t filter_adsr =
+    {
+        .attack = &filter_attack,
+        .decay = &filter_decay,
+        .sustain = &filter_sustain,
+        .release = &filter_release
+    };
+
+    lp_filter_t filter =
+    {
+        .cutoff = 0.5,
+        .prev_input = 0.0,
+        .prev_output = 0.0,
+        .adsr = &filter_adsr
+    };
 
     synth_t synth =
         {

@@ -84,7 +84,7 @@ void render_infos(synth_t synth, TTF_Font *font, SDL_Renderer *renderer,
     char parameters_buffer[256];
     snprintf(parameters_buffer, sizeof(parameters_buffer),
              "Parameters - Amp: %.2f | Filter cutoff: %.2f | Detune: %.2f",
-             synth.amp, synth.filter->cutoff, synth.detune);
+             synth.amp, synth.filter->env_cutoff, synth.detune);
 
     if (strcmp(parameters_buffer, text_cache.last_parameters_text) != 0)
     {

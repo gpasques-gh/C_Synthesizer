@@ -19,18 +19,27 @@ void handle_input(SDL_Keycode key, synth_t *synth, int layout, int *octave,
 
     if (midi_note != -1)
     {
-        for (int v = 0; v < VOICES; v++)
+        int active_voices = 0;
+        for (int v = 0; v < VOICES; v++) 
+        {
+            
+            if (synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
+                active_voices++;
+            
             if (synth->voices[v].adsr->state == ENV_RELEASE)
             {
                 synth->voices[v].active = 0;
                 synth->voices[v].adsr->state = ENV_IDLE;
                 synth->voices[v].adsr->output = 0.0;
             }
+        }
 
         voice_t *free_voice = get_free_voice(synth);
         if (free_voice == NULL)
             return;
         change_freq(free_voice, midi_note, 127, synth->detune);
+        if (active_voices == 0)
+            synth->filter->adsr->state = ENV_ATTACK;
         return;
     }
 

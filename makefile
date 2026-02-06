@@ -17,7 +17,7 @@ DEPS = $(OBJS:.o=.d)
 
 # Flags
 CFLAGS = -Wall -Wextra -O2 -I$(INC_DIR) -MMD -MP $(shell pkg-config --cflags sdl2 SDL2_ttf)
-LDFLAGS = -lasound -lncurses -lm $(shell pkg-config --libs sdl2 SDL2_ttf)
+LDFLAGS = -lasound -lm $(shell pkg-config --libs sdl2 SDL2_ttf)
 
 # Default
 all: $(BIN_DIR)/$(TARGET)

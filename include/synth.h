@@ -39,7 +39,8 @@ typedef struct
 /* Low-pass filter structure */
 typedef struct
 {
-    float prev_input, prev_output, cutoff;
+    float prev_input, prev_output, cutoff, env_cutoff;
+    adsr_t *adsr;
 } lp_filter_t;
 
 /*
@@ -102,5 +103,6 @@ double lp_process(lp_filter_t *filter, double input, float cutoff);
  * Used to assign a note send by MIDI or keyboard to the first free voice
  */
 voice_t *get_free_voice(synth_t *synth);
+
 
 #endif
