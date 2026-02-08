@@ -39,6 +39,7 @@ pulseaudio
 libasound-dev  
 raylib  
 raygui 
+zenity  
 
 # Compile and run 🛠️
 To compile the projet : `make`  
