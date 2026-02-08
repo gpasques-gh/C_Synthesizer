@@ -38,7 +38,7 @@ The up arrow key move the keys up an octave and the down arrow key move the keys
 pulseaudio  
 libasound-dev  
 raylib  
-raygui 
+raygui  
 zenity  
 
 # Compile and run 🛠️
