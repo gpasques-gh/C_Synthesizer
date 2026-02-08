@@ -1,130 +1,142 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <stdio.h>
+#include <dirent.h>
+
+#include <libxml2/libxml/parser.h>
+#include <libxml2/libxml/tree.h>
 
 #include "interface.h"
 #include "synth.h"
+#include "xml.h"
+
 
 /*
- * Cached text textures
+ * Renders the global informations and menus about the synthesizer :
+ * - ADSR envelope sliders
+ * - Filter ADSR envelope sliders
+ * - Oscillator waveforms dropdown menus
+ * - Filter cutoff and filter envelope ON/OFF
+ * - Amplification and detune effect
  */
-static text_cache_t text_cache = {NULL, NULL, NULL, NULL, "", "", "", ""};
-
-/*
- * Render the synth basic informations into the SDL renderer with the given font :
- * - ADSR envelope parameters
- * - Voices oscillators waveforms
- * - Filter cutoff
- * - Detune coefficient
- * - Amplification coefficient
- */
-void render_infos(synth_t synth, TTF_Font *font, SDL_Renderer *renderer,
-                  double attack, double decay, double sustain, double release)
+void 
+render_informations(
+    synth_t *synth,
+    float *attack, float *decay,
+    float *sustain, float *release,
+    int *wave_a, int *wave_b, int *wave_c,
+    bool *ddm_a, bool *ddm_b, bool *ddm_c,
+    char *preset_filename, bool *saving_preset)
 {
-    SDL_Color black = {0, 0, 0, 255};
+    /* ADSR envelope sliders */
+    GuiGroupBox((Rectangle){ 30, 30, WIDTH / 2 - 50, 160 }, "ADSR Envelope");
+    /* Attack */
+    GuiLabel((Rectangle){ 155, 40, 100, 20}, "Attack");
+    GuiSlider((Rectangle){ 60, 60, 225, 40 }, NULL, NULL, 
+            attack, 0.0f, 2.0f);
+    /* Decay */
+    GuiLabel((Rectangle){ 155, 110, 100, 20}, "Decay");
+    GuiSlider((Rectangle){ 60, 130, 225, 40 }, NULL, NULL, 
+            decay, 0.0f, 2.0f);
+    /* Sustain */
+    GuiLabel((Rectangle){ 415, 40, 100, 20}, "Sustain");
+    GuiSlider((Rectangle){ 320, 60, 225, 40 }, NULL, NULL,
+            sustain, 0.0f, 1.0f);
+    /* Release */
+    GuiLabel((Rectangle){ 415, 110, 100, 20}, "Release");
+    GuiSlider((Rectangle){ 320, 130, 225, 40 }, NULL, NULL, 
+            release, 0.0f, 1.0f);
 
-    char title_buffer[256] = TITLE;
+    /* Filter ADSR envelope sliders */
+    GuiGroupBox((Rectangle){ 625, 30, WIDTH / 2 - 50, 160 }, "Filter ADSR Envelope");
+    /* Attack */
+    GuiLabel((Rectangle){ 750, 40, 100, 20}, "Attack");
+    GuiSlider((Rectangle){ 655, 60, 225, 40 }, NULL, NULL, 
+            synth->filter->adsr->attack, 0.0f, 2.0f);
+    /* Decay */
+    GuiLabel((Rectangle){ 750, 110, 100, 20}, "Decay");
+    GuiSlider((Rectangle){ 655, 130, 225, 40 }, NULL, NULL, 
+            synth->filter->adsr->decay, 0.0f, 2.0f);
+    /* Sustain */
+    GuiLabel((Rectangle){ 1010, 40, 100, 20}, "Sustain");
+    GuiSlider((Rectangle){ 915, 60, 225, 40 }, NULL, NULL, 
+            synth->filter->adsr->sustain, 0.0f, 1.0f);
+    /* Release */
+    GuiLabel((Rectangle){ 1010, 110, 100, 20}, "Release");
+    GuiSlider((Rectangle){ 915, 130, 225, 40 }, NULL, NULL, 
+            synth->filter->adsr->release, 0.0f, 1.0f);
 
-    if (strcmp(title_buffer, text_cache.last_title_text) != 0)
-    {
-        if (text_cache.title_texture)
-            SDL_DestroyTexture(text_cache.title_texture);
+    /* Oscillators waveforms */
+    GuiGroupBox((Rectangle){ 30, 220, WIDTH / 2 - 50, 160 }, "Oscillators");
+    /* Oscillator A */
+    GuiLabel((Rectangle){80, 255, 110, 20}, "Oscillator A");
+    if (GuiDropdownBox((Rectangle){60, 275, 140, 40 }, 
+        "#01#Sine wave;#02#Square wave;#03#Triangle wave;#04#Sawtooth wave", 
+        wave_a, *ddm_a))
+            *ddm_a = !*ddm_a;
+    /* Oscillator B */
+    GuiLabel((Rectangle){250, 255, 110, 20}, "Oscillator B");
+    if (GuiDropdownBox((Rectangle){230, 275, 140, 40 }, 
+        "#01#Sine wave;#02#Square wave;#03#Triangle wave;#04#Sawtooth wave", 
+        wave_b, *ddm_b))
+            *ddm_b = !*ddm_b;
+    /* Oscillator C */
+    GuiLabel((Rectangle){420, 255, 110, 20}, "Oscillator C");
+    if (GuiDropdownBox((Rectangle){400, 275, 140, 40 }, 
+        "#01#Sine wave;#02#Square wave;#03#Triangle wave;#04#Sawtooth wave", 
+        wave_c, *ddm_c))
+            *ddm_c = !*ddm_c;
+    
+    /* Synth parameters */
+    GuiGroupBox((Rectangle){ 625, 220, WIDTH / 2 - 50, 160 }, "Synth parameters");
+    /* Filter cutoff */
+    GuiLabel((Rectangle){ 695, 230, 100, 20}, "Cutoff");
+    GuiSlider((Rectangle){ 645, 250, 170, 40 }, NULL, NULL, 
+            &synth->filter->cutoff, 0.0f, 1.0f);
+    /* Synth detune effect */
+    GuiLabel((Rectangle){ 695, 300, 100, 20}, "Detune");
+    GuiSlider((Rectangle){ 645, 320, 170, 40 }, NULL, NULL, 
+            &synth->detune, 0.0f, 1.0f);
+    /* Amplification */
+    GuiLabel((Rectangle){ 955, 230, 100, 20}, "Amp");
+    GuiSlider((Rectangle){ 840, 250, 170, 40 }, NULL, NULL, 
+            &synth->amp, 0.0f, 1.0f);
+    /* Filter ADSR ON/OFF */
+    GuiCheckBox((Rectangle){840, 320, 40, 40}, "Filter ADSR", 
+            &synth->filter->env);
 
-        SDL_Surface *surface = TTF_RenderText_Solid(font, title_buffer, black);
-        text_cache.title_texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_FreeSurface(surface);
+    /* Saving preset */
+    if (GuiButton((Rectangle){ 1030, 250, 120, 40 }, "Save preset"))
+        *saving_preset = true;
 
-        strcpy(text_cache.last_title_text, title_buffer);
-    }
-
-    SDL_Rect title_rect = {.h = 50, .w = WIDTH / 2, .x = WIDTH / 4, .y = 0};
-    SDL_RenderCopy(renderer, text_cache.title_texture, NULL, &title_rect);
-
-    char envelope_buffer[256];
-    snprintf(envelope_buffer, sizeof(envelope_buffer),
-             "Envelope - Attack: %.2f | Decay: %.2f | Sustain: %.2f | Release: %.2f",
-             attack, decay, sustain, release);
-
-    if (strcmp(envelope_buffer, text_cache.last_envelope_text) != 0)
-    {
-        if (text_cache.envelope_texture)
-            SDL_DestroyTexture(text_cache.envelope_texture);
-
-        SDL_Surface *surface = TTF_RenderText_Solid(font, envelope_buffer, black);
-        text_cache.envelope_texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_FreeSurface(surface);
-
-        strcpy(text_cache.last_envelope_text, envelope_buffer);
-    }
-
-    SDL_Rect envelope_rect = {.h = 50, .w = WIDTH * 0.95, .x = (WIDTH - WIDTH * 0.95) / 2, .y = 60};
-    SDL_RenderCopy(renderer, text_cache.envelope_texture, NULL, &envelope_rect);
-
-    char waveform_buffer[256];
-    snprintf(waveform_buffer, sizeof(waveform_buffer),
-             "Waveforms - Osc A: %s | Osc B: %s | Osc C: %s",
-             get_wave_name(synth.voices[0].oscillators[0].wave),
-             get_wave_name(synth.voices[0].oscillators[1].wave),
-             get_wave_name(synth.voices[0].oscillators[2].wave));
-
-    if (strcmp(waveform_buffer, text_cache.last_waveform_text) != 0)
-    {
-        if (text_cache.waveform_texture)
-            SDL_DestroyTexture(text_cache.waveform_texture);
-
-        SDL_Surface *surface = TTF_RenderText_Solid(font, waveform_buffer, black);
-        text_cache.waveform_texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_FreeSurface(surface);
-
-        strcpy(text_cache.last_waveform_text, waveform_buffer);
-    }
-
-    SDL_Rect waveform_rect = {.h = 50, .w = WIDTH * 0.95, .x = (WIDTH - WIDTH * 0.95) / 2, .y = 120};
-    SDL_RenderCopy(renderer, text_cache.waveform_texture, NULL, &waveform_rect);
-
-    char parameters_buffer[256];
-    snprintf(parameters_buffer, sizeof(parameters_buffer),
-             "Parameters - Amp: %.2f | Filter cutoff: %.2f | Detune: %.2f",
-             synth.amp, synth.filter->env_cutoff, synth.detune);
-
-    if (strcmp(parameters_buffer, text_cache.last_parameters_text) != 0)
-    {
-        if (text_cache.parameters_texture)
-            SDL_DestroyTexture(text_cache.parameters_texture);
-
-        SDL_Surface *surface = TTF_RenderText_Solid(font, parameters_buffer, black);
-        text_cache.parameters_texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_FreeSurface(surface);
-
-        strcpy(text_cache.last_parameters_text, parameters_buffer);
-    }
-
-    SDL_Rect parameters_rect = {.h = 50, .w = WIDTH * 0.66, .x = WIDTH / 6, .y = 180};
-    SDL_RenderCopy(renderer, text_cache.parameters_texture, NULL, &parameters_rect);
+    if (*saving_preset)
+        save_preset(
+            synth, 
+            attack, decay, sustain, release,
+            wave_a, wave_b, wave_c,
+            preset_filename, saving_preset);
+            
+    /* Loading preset */
+    if (GuiButton((Rectangle){ 1030, 320, 120, 40 }, "Load preset"))
+        load_preset(
+            synth, 
+            attack, decay, sustain, release,
+            wave_a, wave_b, wave_c);
 }
 
-/* Cleanup function for the cached text texture */
-void cleanup_text_cache()
+
+/* Renders the waveform generated by the render_synth function */
+void 
+render_waveform(short *buffer)
 {
-    if (text_cache.envelope_texture)
-        SDL_DestroyTexture(text_cache.envelope_texture);
-    if (text_cache.waveform_texture)
-        SDL_DestroyTexture(text_cache.waveform_texture);
+    GuiGroupBox((Rectangle){ 30, 410, WIDTH - 55, 160}, "Waveform");
 
-    text_cache.envelope_texture = NULL;
-    text_cache.waveform_texture = NULL;
-}
-
-/* Renders the waveform generated from the render_synth function into the SDL renderer */
-void render_waveform(SDL_Renderer *renderer, short *buffer)
-{
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-
-    int mid_y = HEIGHT / 4;
+    int mid_y = HEIGHT / 4 + 25;
     int y = HEIGHT / 3 + mid_y;
 
     int step = 1;
 
-    for (int i = 0; i < FRAMES - step; i += step)
+    for (int i = 13; i < FRAMES - 11; i += step)
     {
         int x1 = (i * WIDTH) / FRAMES;
         int x2 = ((i + step) * WIDTH) / FRAMES;
@@ -132,41 +144,31 @@ void render_waveform(SDL_Renderer *renderer, short *buffer)
         int y1 = y - ((buffer[i] * mid_y) / 32768);
         int y2 = y - ((buffer[i + step] * mid_y) / 32768);
 
-        SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+        /* Preventing going past the GuiGroupBox */
+        if (y1 < 410) y1 = 410;
+        if (y2 < 410) y2 = 410;
+        if (y1 > 570) y1 = 570;
+        if (y2 > 570) y2 = 570;
+
+        DrawLine(x1, y1, x2, y2, BLACK);
     }
 }
 
-/* Render the white keys from the MIDI piano visualizer into the SDL renderer */
-void render_white_keys(SDL_Renderer *renderer)
+/* Render the white keys from the MIDI piano visualizer */
+void 
+render_white_keys()
 {
     for (int i = 0; i < WHITE_KEYS; i++)
     {
-        SDL_Rect key =
-            {
-                .h = WHITE_KEYS_HEIGHT,
-                .w = WHITE_KEYS_WIDTH,
-                .x = i * WHITE_KEYS_WIDTH,
-                .y = 0};
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderFillRect(renderer, &key);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderDrawRect(renderer, &key);
+        DrawRectangleLines(i * WHITE_KEYS_WIDTH, HEIGHT - WHITE_KEYS_HEIGHT, 
+            WHITE_KEYS_WIDTH + 1, WHITE_KEYS_HEIGHT, BLACK);   
     }
 }
 
-/* Render the black keys from the MIDI piano visualizer into the SDL renderer */
-void render_black_keys(SDL_Renderer *renderer)
+/* Render the black keys from the MIDI piano visualizer */
+void 
+render_black_keys()
 {
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 0);
-    SDL_Rect background =
-        {
-            .h = WHITE_KEYS_HEIGHT,
-            .w = WIDTH,
-            .x = 0,
-            .y = 0};
-
-    SDL_RenderFillRect(renderer, &background);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     char black_keys_pattern[] = {1, 1, 0, 1, 1, 1, 0, 0};
     int white_key_index = 0;
     for (int octave = 0; octave <= (WHITE_KEYS / 7); octave++)
@@ -176,12 +178,8 @@ void render_black_keys(SDL_Renderer *renderer)
             if (black_keys_pattern[i])
             {
                 int x = (white_key_index * WHITE_KEYS_WIDTH) + WHITE_KEYS_WIDTH - (BLACK_KEYS_WIDTH / 2);
-                SDL_Rect black_key = {
-                    .h = BLACK_KEYS_HEIGHT,
-                    .w = BLACK_KEYS_WIDTH,
-                    .x = x,
-                    .y = 0};
-                SDL_RenderFillRect(renderer, &black_key);
+                DrawRectangle(x, HEIGHT - WHITE_KEYS_HEIGHT,
+                                BLACK_KEYS_WIDTH, BLACK_KEYS_HEIGHT, BLACK);
             }
             white_key_index++;
             if (white_key_index >= WHITE_KEYS)
@@ -193,26 +191,22 @@ void render_black_keys(SDL_Renderer *renderer)
 }
 
 /* Renders given note into a pressed key in the MIDI piano visualizer */
-void render_key(SDL_Renderer *renderer, int midi_note)
+void 
+render_key(int midi_note)
 {
     int width = 0, height = 0, x = 0, y = 0, is_black = 0;
     get_key_position(midi_note, &x, &y, &width, &height, &is_black);
 
-    SDL_Rect key =
-        {
-            .h = height,
-            .w = width,
-            .x = x,
-            .y = y};
-
-    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    SDL_RenderFillRect(renderer, &key);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderDrawRect(renderer, &key);
+    DrawRectangle(x, y, width, height, (Color){151, 232, 255, 255});
+    DrawRectangleLines(x, y, width, height, BLACK);
+    /* Avoid double thick line when pressing a white key */
+    if (!is_black) DrawLine(x + width, y, x + width, y + height - 1, (Color){151, 232, 255, 255});
 }
 
 /* Outputs a given MIDI note rectangle parameters (x, y, width and height) */
-void get_key_position(int midi_note, int *x, int *y, int *width, int *height, int *is_black)
+void 
+get_key_position(int midi_note, int *x, int *y, 
+                int *width, int *height, int *is_black)
 {
     int note_in_octave = midi_note % 12;
     int octave = midi_note / 12;
@@ -242,7 +236,8 @@ void get_key_position(int midi_note, int *x, int *y, int *width, int *height, in
 }
 
 /* Returns if a MIDI note is a assigned to a black key or not */
-int is_black_key(int midi_note)
+int 
+is_black_key(int midi_note)
 {
     int note = midi_note % 12;
     return (note == 1 || note == 3 || note == 6 || note == 8 || note == 10);

@@ -16,8 +16,8 @@ OBJS = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 DEPS = $(OBJS:.o=.d)
 
 # Flags
-CFLAGS = -Wall -Wextra -O2 -I$(INC_DIR) -MMD -MP $(shell pkg-config --cflags sdl2 SDL2_ttf)
-LDFLAGS = -lasound -lm $(shell pkg-config --libs sdl2 SDL2_ttf)
+CFLAGS = -Wall -Wextra -O2 -I$(INC_DIR) -I/usr/include/libxml2 -MMD -MP $(shell pkg-config --cflags sdl2 SDL2_ttf)
+LDFLAGS = -lasound -lm -lraylib -lxml2 $(shell pkg-config --libs sdl2 SDL2_ttf)
 
 # Default
 all: $(BIN_DIR)/$(TARGET)

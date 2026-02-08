@@ -1,10 +1,13 @@
 #ifndef SYNTH_H
 #define SYNTH_H
 
+#include <stdbool.h>
+
 #include "defs.h"
 
 /* ADSR envelope states */
-typedef enum
+typedef 
+enum
 {
     ENV_IDLE,
     ENV_ATTACK,
@@ -19,10 +22,11 @@ typedef enum
  * The sustain parameter controls the sound level
  * The output is the amplification coefficient of the envelope
  */
-typedef struct
+typedef 
+struct
 {
-    double *attack, *decay, *sustain, *release;
-    double output;
+    float *attack, *decay, *sustain, *release;
+    float output;
     env_state_t state;
 } adsr_t;
 
@@ -30,17 +34,20 @@ typedef struct
  * Oscillator structure
  * Wave can either be a sine, square, triangle or sawtooth
  */
-typedef struct
+typedef 
+struct
 {
     double freq, phase;
-    short wave;
+    int *wave;
 } osc_t;
 
 /* Low-pass filter structure */
-typedef struct
+typedef 
+struct
 {
     float prev_input, prev_output, cutoff, env_cutoff;
     adsr_t *adsr;
+    bool env;
 } lp_filter_t;
 
 /*
@@ -48,7 +55,8 @@ typedef struct
  * Each voice has its own ADSR envelope and MIDI velocity amplification
  * The note is in MIDI range (0 to 127)
  */
-typedef struct
+typedef 
+struct
 {
     osc_t *oscillators;
     adsr_t *adsr;
@@ -63,46 +71,56 @@ typedef struct
  * Detune is between 0.0 and 1.0
  * Amplification is between 0.0 and 1.0
  */
-typedef struct
+typedef 
+struct
 {
     voice_t *voices;
     lp_filter_t *filter;
-    double detune;
-    double amp;
+    float detune;
+    float amp;
 } synth_t;
 
 /*
  * Process a sample from the ADSR envelope
  * Returns the envelope amplification coeficient
  */
-double adsr_process(adsr_t *adsr);
+float 
+adsr_process(adsr_t *adsr);
 
 /* Renders the synth_t voices into the temporary sound buffer */
-void render_synth(synth_t *synth, short *buffer);
+void
+render_synth(synth_t *synth, short *buffer);
 
 /*
  * Change the frequency of a voice_t oscillators with the given MIDI note and velocity
  * Multiplied by the synth_t detune coefficient
  */
-void change_freq(voice_t *voice, int note, int velocity, double detune);
+void 
+change_freq(voice_t *voice, int note, 
+            int velocity, double detune);
 
 /* Apply the detune change to the voices oscillators */
-void apply_detune_change(synth_t *synth);
+void 
+apply_detune_change(synth_t *synth);
 
 /* Get the literal name of a given waveform */
-const char *get_wave_name(int wave);
+const char 
+*get_wave_name(int wave);
 
 /*
  * Process a sample with the low-pass filter
  * Returns the processed sample
  */
-double lp_process(lp_filter_t *filter, double input, float cutoff);
+double 
+lp_process( lp_filter_t *filter, double input, 
+            float cutoff);
 
 /*
  * Returns the first free voice from the synth_t
  * Used to assign a note send by MIDI or keyboard to the first free voice
  */
-voice_t *get_free_voice(synth_t *synth);
+voice_t 
+*get_free_voice(synth_t *synth);
 
 
 #endif

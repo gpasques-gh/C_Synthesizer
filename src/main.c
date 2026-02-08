@@ -4,11 +4,12 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#include "defs.h"
+#define RAYGUI_IMPLEMENTATION
+
+#include "interface.h"
 #include "synth.h"
 #include "midi.h"
 #include "keyboard.h"
-#include "interface.h"
 
 /* Prints the usage of the CLI arguments into the error output */
 void usage()
@@ -29,9 +30,6 @@ int main(int argc, char **argv)
     }
 
     snd_pcm_t *handle = NULL;
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-    TTF_Font *font = NULL;
     snd_rawmidi_t *midi_in = NULL;
 
     char midi_device[256];
@@ -80,15 +78,17 @@ int main(int argc, char **argv)
 
     int octave = DEFAULT_OCTAVE;
 
-    double attack = 0.2;
-    double decay = 0.3;
-    double sustain = 0.7;
-    double release = 0.2;
+    int osc_a = SINE_WAVE, osc_b = SINE_WAVE, osc_c = SINE_WAVE;
 
-    double filter_attack = 0.0;
-    double filter_decay = 0.3;
-    double filter_sustain = 0.0;
-    double filter_release = 0.2;
+    float attack = 0.2;
+    float decay = 0.3;
+    float sustain = 0.7;
+    float release = 0.2;
+
+    float filter_attack = 0.0;
+    float filter_decay = 0.3;
+    float filter_sustain = 0.0;
+    float filter_release = 0.2;
 
     adsr_t filter_adsr =
     {
@@ -103,7 +103,8 @@ int main(int argc, char **argv)
         .cutoff = 0.5,
         .prev_input = 0.0,
         .prev_output = 0.0,
-        .adsr = &filter_adsr
+        .adsr = &filter_adsr,
+        .env = false
     };
 
     synth_t synth =
@@ -154,8 +155,10 @@ int main(int argc, char **argv)
         {
             synth.voices[i].oscillators[j].freq = 0.0;
             synth.voices[i].oscillators[j].phase = 0.0;
-            synth.voices[i].oscillators[j].wave = SINE_WAVE;
         }
+        synth.voices[i].oscillators[0].wave = &osc_a;
+        synth.voices[i].oscillators[1].wave = &osc_b;
+        synth.voices[i].oscillators[2].wave = &osc_c;
     }
 
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
@@ -176,6 +179,13 @@ int main(int argc, char **argv)
         goto cleanup_alsa;
     }
 
+    if (midi_input)
+        if (snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK) < 0)
+        {
+            fprintf(stderr, "error while opening midi device %s\n", midi_device);
+            goto cleanup_alsa;
+        }
+
     snd_pcm_prepare(handle);
 
     short buffer[FRAMES];
@@ -186,89 +196,20 @@ int main(int argc, char **argv)
         snd_pcm_writei(handle, buffer, FRAMES);
     }
 
-    window = SDL_CreateWindow(
-        "ALSA Synth", 0, 0,
-        WIDTH, HEIGHT,
-        SDL_WINDOW_SHOWN);
-    if (window == NULL)
+    bool ddm_a = false, ddm_b = false, ddm_c = false, saving_preset = false;
+    char filename[1024] = "\0";
+    
+    InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
+    Font annotation = LoadFont("Regular.ttf");
+    GuiSetFont(annotation);
+    GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * 0.5); 
+
+    while (!WindowShouldClose())
     {
-        fprintf(stderr, "error while creating SDL window.\n");
-        goto cleanup_alsa;
-    }
-
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == NULL)
-    {
-        fprintf(stderr, "error while creating SDL renderer.\n");
-        goto cleanup_window;
-    }
-
-    SDL_Texture *white_keys_texture = SDL_CreateTexture(renderer,
-                                                        SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-                                                        WIDTH, WHITE_KEYS_HEIGHT);
-
-    if (white_keys_texture == NULL)
-    {
-        fprintf(stderr, "error while creating keyboard texture: %s\n", SDL_GetError());
-        goto cleanup_renderer;
-    }
-
-    SDL_SetTextureBlendMode(white_keys_texture, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderTarget(renderer, white_keys_texture);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderClear(renderer);
-    render_white_keys(renderer);
-    SDL_SetRenderTarget(renderer, NULL);
-
-    SDL_Texture *black_keys_texture = SDL_CreateTexture(renderer,
-                                                        SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-                                                        WIDTH, WHITE_KEYS_HEIGHT);
-
-    if (black_keys_texture == NULL)
-    {
-        fprintf(stderr, "error while creating keyboard texture: %s\n", SDL_GetError());
-        goto cleanup_white_keys_texture;
-    }
-
-    SDL_SetTextureBlendMode(black_keys_texture, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderTarget(renderer, black_keys_texture);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderClear(renderer);
-    render_black_keys(renderer);
-    SDL_SetRenderTarget(renderer, NULL);
-
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_Event event;
-
-    TTF_Init();
-    font = TTF_OpenFont("Regular.ttf", 24);
-    if (font == NULL)
-    {
-        fprintf(stderr, "error while loading font: %s\n", TTF_GetError());
-        goto cleanup_black_keys_texture;
-    }
-
-    if (midi_input)
-        if (snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK) < 0)
+        if (keyboard_input && !saving_preset)
         {
-            fprintf(stderr, "error while opening midi device %s\n", midi_device);
-            goto cleanup_font;
-        }
-
-    int running = 1;
-    while (running)
-    {
-        while (SDL_PollEvent(&event) != 0)
-        {
-            if (event.type == SDL_QUIT)
-                running = 0;
-            else if (keyboard_input &&
-                     event.type == SDL_KEYDOWN &&
-                     event.key.repeat == 0)
-                handle_input(event.key.keysym.sym, &synth, keyboard_layout,
-                             &octave, &attack, &decay, &sustain, &release);
-            else if (keyboard_input && event.type == SDL_KEYUP)
-                handle_release(event.key.keysym.sym, &synth, keyboard_layout, octave);
+            handle_input(&synth, keyboard_layout, &octave);
+            handle_release(&synth, keyboard_input, octave);
         }
 
         if (midi_input)
@@ -288,51 +229,32 @@ int main(int argc, char **argv)
             snd_pcm_prepare(handle);
         }
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_Rect outside_key = {.w = WIDTH, .h = HEIGHT - WHITE_KEYS_HEIGHT, .x = 0, .y = 0};
-        SDL_RenderFillRect(renderer, &outside_key);
+        BeginDrawing();
+            ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
+            render_waveform(buffer);
+            render_informations(
+                &synth,
+                &attack, &decay, &sustain, &release,
+                &osc_a, &osc_b, &osc_c,
+                &ddm_a, &ddm_b, &ddm_c,
+                filename, &saving_preset);
+            render_white_keys();
+            for (int v = 0; v < VOICES; v++)
+                if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
+                    render_key(synth.voices[v].note);
 
-        render_infos(synth, font, renderer, attack, decay, sustain, release);
-        render_waveform(renderer, buffer);
-
-        SDL_Rect keyboard_dest = {0, HEIGHT - WHITE_KEYS_HEIGHT, WIDTH, WHITE_KEYS_HEIGHT};
-        SDL_RenderCopy(renderer, white_keys_texture, NULL, &keyboard_dest);
-
-        for (int v = 0; v < VOICES; v++)
-            if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
-                render_key(renderer, synth.voices[v].note);
-
-        SDL_RenderCopy(renderer, black_keys_texture, NULL, &keyboard_dest);
-
-        for (int v = 0; v < VOICES; v++)
-            if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
-                render_key(renderer, synth.voices[v].note);
-
-        SDL_RenderPresent(renderer);
+            render_black_keys();
+            for (int v = 0; v < VOICES; v++)
+                if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
+                    render_key(synth.voices[v].note);
+        EndDrawing();
     }
+
+    CloseWindow();
 
     if (midi_in)
         snd_rawmidi_close(midi_in);
 
-    cleanup_text_cache();
-
-cleanup_font:
-    if (font)
-        TTF_CloseFont(font);
-    TTF_Quit();
-cleanup_black_keys_texture:
-    if (black_keys_texture)
-        SDL_DestroyTexture(black_keys_texture);
-cleanup_white_keys_texture:
-    if (white_keys_texture)
-        SDL_DestroyTexture(white_keys_texture);
-cleanup_renderer:
-    if (renderer)
-        SDL_DestroyRenderer(renderer);
-cleanup_window:
-    if (window)
-        SDL_DestroyWindow(window);
-    SDL_Quit();
 cleanup_alsa:
     if (handle)
     {

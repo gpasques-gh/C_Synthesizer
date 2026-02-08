@@ -7,7 +7,8 @@
  * Process a sample from the ADSR envelope
  * Returns the envelope amplification coeficient
  */
-double adsr_process(adsr_t *adsr)
+float 
+adsr_process(adsr_t *adsr)
 {
     switch (adsr->state)
     {
@@ -36,7 +37,7 @@ double adsr_process(adsr_t *adsr)
         {
             if (*adsr->sustain > 0.0)
             {   /* Decrement the amplification by the decay amount relatively to the sustain amount */
-                double decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
+                float decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
                 adsr->output -= decrement;
         
                 if (adsr->output <= *adsr->sustain)
@@ -47,7 +48,7 @@ double adsr_process(adsr_t *adsr)
             }
             else
             {   /* Decrement the amplification by the decay amount relatively to the release amount */
-                double decrement = (1.0 - *adsr->release) / (*adsr->decay * RATE);
+                float decrement = (1.0 - *adsr->release) / (*adsr->decay * RATE);
                 adsr->output -= decrement;
         
                 if (adsr->output <= *adsr->release && adsr->release)
@@ -76,7 +77,7 @@ double adsr_process(adsr_t *adsr)
         
         if (*adsr->sustain == 0.0)
         {   /* Increment the amplification by the attack amount */
-            double decrement = adsr->output / (*adsr->release * RATE);
+            float decrement = adsr->output / (*adsr->release * RATE);
             adsr->output -= decrement;
             adsr->state = ENV_RELEASE;
             
@@ -86,7 +87,7 @@ double adsr_process(adsr_t *adsr)
     case ENV_RELEASE:
         if (*adsr->release > 0.0)
         {   /* Decrement the amplification by the release amount */
-            double decrement = adsr->output / (*adsr->release * RATE);
+            float decrement = adsr->output / (*adsr->release * RATE);
             adsr->output -= decrement;
             if (adsr->output <= 0.001)
             {
@@ -105,7 +106,8 @@ double adsr_process(adsr_t *adsr)
 }
 
 /* Renders the synth_t voices into the temporary sound buffer */
-void render_synth(synth_t *synth, short *buffer)
+void 
+render_synth(synth_t *synth, short *buffer)
 {
     double temp_buffer[FRAMES];
     memset(temp_buffer, 0, FRAMES * sizeof(double));
@@ -121,7 +123,7 @@ void render_synth(synth_t *synth, short *buffer)
 
         for (int i = 0; i < FRAMES; i++)
         { /* Oscillators processing for each voice*/
-            double envelope = adsr_process(voice->adsr);
+            float envelope = adsr_process(voice->adsr);
             double mixed = 0.0;
 
             for (int o = 0; o < 3; o++)
@@ -130,7 +132,7 @@ void render_synth(synth_t *synth, short *buffer)
                 double phase_inc = osc->freq / RATE;
                 double sample;
 
-                switch (osc->wave)
+                switch (*osc->wave)
                 {
                 case SINE_WAVE:
                     sample = sin(2.0 * M_PI * osc->phase);
@@ -179,9 +181,15 @@ void render_synth(synth_t *synth, short *buffer)
 
     for (int i = 0; i < FRAMES; i++)
     { /* Low-pass filter and gain processing */
-        double env_cutoff = synth->filter->cutoff + adsr_process(synth->filter->adsr) / 2;
-        if (env_cutoff > 1.0) env_cutoff = 1.0;
-    
+        
+        double env_cutoff = synth->filter->cutoff;
+        if (synth->filter->env)
+        {
+            env_cutoff = synth->filter->cutoff + 
+            adsr_process(synth->filter->adsr) / 2;
+            if (env_cutoff > 1.0) env_cutoff = 1.0;
+        }
+        
         double sample = temp_buffer[i] * gain;
         if (sample > 1.0)
             sample = 1.0;
@@ -198,7 +206,9 @@ void render_synth(synth_t *synth, short *buffer)
  * Change the frequency of a voice_t oscillators with the given MIDI note and velocity
  * Multiplied by the synth_t detune coefficient
  */
-void change_freq(voice_t *voice, int note, int velocity, double detune)
+void 
+change_freq(voice_t *voice, int note, 
+            int velocity, double detune)
 {
     int a4_diff = note - A4_POSITION;
 
@@ -219,7 +229,8 @@ void change_freq(voice_t *voice, int note, int velocity, double detune)
 }
 
 /* Apply the detune change to the voices oscillators */
-void apply_detune_change(synth_t *synth) 
+void 
+apply_detune_change(synth_t *synth) 
 {
     for (int v = 0; v < VOICES; v++)
     { /* Applying detune changes to each voice of the synthesizer */
@@ -230,7 +241,8 @@ void apply_detune_change(synth_t *synth)
 }
 
 /* Get the literal name of a given waveform */
-const char *get_wave_name(int wave)
+const char 
+*get_wave_name(int wave)
 {
     switch (wave)
     {
@@ -251,7 +263,9 @@ const char *get_wave_name(int wave)
  * Process a sample with the low-pass filter
  * Returns the processed sample
  */
-double lp_process(lp_filter_t *filter, double input, float cutoff)
+double 
+lp_process(lp_filter_t *filter, double input, 
+            float cutoff)
 {
     if (cutoff > 1.0f) cutoff = 1.0f;
     if (cutoff < 0.0f) cutoff = 0.0f;
@@ -273,7 +287,8 @@ double lp_process(lp_filter_t *filter, double input, float cutoff)
  * Returns the first free voice from the synth_t
  * Used to assign a note send by MIDI or keyboard to the first free voice
  */
-voice_t *get_free_voice(synth_t *synth)
+voice_t 
+*get_free_voice(synth_t *synth)
 {
     for (int i = 0; i < VOICES; i++)
         if (!synth->voices[i].active)

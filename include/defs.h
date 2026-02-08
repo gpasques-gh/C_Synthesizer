@@ -1,6 +1,6 @@
 #ifndef DEFS_H
 #define DEFS_H
-
+#include <raylib.h>
 #include <SDL2/SDL.h>
 
 /* Notes semitones used for keyboard input */
@@ -22,37 +22,20 @@
 #define AZERTY 1
 
 /* Keyboard note keys */
-#define kC_QWERTY SDLK_a
-#define kC_AZERTY SDLK_q
-#define kC_SHARP_QWERTY SDLK_w
-#define kC_SHARP_AZERTY SDLK_z
-#define kD SDLK_s
-#define kD_SHARP SDLK_e
-#define kE SDLK_d
-#define kF SDLK_f
-#define kF_SHARP SDLK_t
-#define kG SDLK_g
-#define kG_SHARP SDLK_y
-#define kA SDLK_h
-#define kA_SHARP SDLK_u
-#define kB SDLK_j
-
-/* Keyboard oscillators waveforms control keys */
-#define OSC_A_WAVE_INCREMENT SDLK_1
-#define OSC_B_WAVE_INCREMENT SDLK_2
-#define OSC_C_WAVE_INCREMENT SDLK_3
-
-/* Keyboard synthesizer parameters control keys */
-#define AMPLITUDE_INCREMENT SDLK_4
-#define CUTOFF_INCREMENT SDLK_5
-#define DETUNE_INCREMENT SDLK_6
-
-/* Keyboard ADSR envelope parameters control keys */
-#define ATTACK_INCREMENT_QWERTY SDLK_z
-#define ATTACK_INCREMENT_AZERTY SDLK_w
-#define DECAY_INCREMENT SDLK_x
-#define SUSTAIN_INCREMENT SDLK_c
-#define RELEASE_INCREMENT SDLK_v
+#define kC_QWERTY KEY_Q
+#define kC_AZERTY KEY_A
+#define kC_SHARP_QWERTY KEY_Z
+#define kC_SHARP_AZERTY KEY_W
+#define kD KEY_S
+#define kD_SHARP KEY_E
+#define kE KEY_D
+#define kF KEY_F
+#define kF_SHARP KEY_T
+#define kG KEY_G
+#define kG_SHARP KEY_Y
+#define kA KEY_H
+#define kA_SHARP KEY_U
+#define kB KEY_J
 
 /* MIDI packets informations */
 #define MIDI_MAX_VALUE 127.0
@@ -84,7 +67,7 @@
 #define A_4 440
 #define RATE 44100
 #define DEFAULT_AMPLITUDE 0.5
-#define A4_POSITION 58
+#define A4_POSITION 58 
 
 /* Oscillators waveforms */
 #define SINE_WAVE 0
@@ -97,9 +80,10 @@
 #define LATENCY 40000
 
 /* SDL interface */
-#define WIDTH 1200
+#define WIDTH 1196
 #define HEIGHT 800
 #define TITLE "ALSA & SDL Synthesizer"
+
 
 /* MIDI piano visualizer */
 #define WHITE_KEYS 52
@@ -108,5 +92,17 @@
 #define WHITE_KEYS_HEIGHT HEIGHT / 4
 #define BLACK_KEYS_WIDTH WHITE_KEYS_WIDTH / 2
 #define BLACK_KEYS_HEIGHT (WHITE_KEYS_HEIGHT * 2) / 3
+
+/* File parser states */
+#define STATE_ADSR 0
+#define STATE_IN_ADSR_NUMBER 1
+#define STATE_FILTER_ADSR 2
+#define STATE_IN_FILTER_NUMBER 3
+#define STATE_SYNTH_PARAMETERS 4
+#define STATE_IN_SYNTH_PARAMETERS_NUMBER 5
+#define STATE_OSC_WAVEFORMS 6
+#define STATE_IN_OSC_WAVEFORMS_NUMBER 7
+#define STATE_ERROR 8
+#define STATE_FINAL 9
 
 #endif
