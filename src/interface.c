@@ -8,6 +8,7 @@
 
 #include "interface.h"
 #include "synth.h"
+#include "xml.h"
 
 
 /*
@@ -19,109 +20,108 @@
  * - Amplification and detune effect
  */
 void 
-render_informations(params_t *params)
+render_informations(
+    synth_t *synth,
+    float *attack, float *decay,
+    float *sustain, float *release,
+    int *wave_a, int *wave_b, int *wave_c,
+    bool *ddm_a, bool *ddm_b, bool *ddm_c,
+    char *preset_filename, bool *saving_preset)
 {
     /* ADSR envelope sliders */
     GuiGroupBox((Rectangle){ 30, 30, WIDTH / 2 - 50, 160 }, "ADSR Envelope");
-
+    /* Attack */
     GuiLabel((Rectangle){ 155, 40, 100, 20}, "Attack");
     GuiSlider((Rectangle){ 60, 60, 225, 40 }, NULL, NULL, 
-            params->attack, 0.0f, 2.0f);
-
+            attack, 0.0f, 2.0f);
+    /* Decay */
     GuiLabel((Rectangle){ 155, 110, 100, 20}, "Decay");
     GuiSlider((Rectangle){ 60, 130, 225, 40 }, NULL, NULL, 
-            params->decay, 0.0f, 2.0f);
-
+            decay, 0.0f, 2.0f);
+    /* Sustain */
     GuiLabel((Rectangle){ 415, 40, 100, 20}, "Sustain");
     GuiSlider((Rectangle){ 320, 60, 225, 40 }, NULL, NULL,
-            params->sustain, 0.0f, 1.0f);
-
+            sustain, 0.0f, 1.0f);
+    /* Release */
     GuiLabel((Rectangle){ 415, 110, 100, 20}, "Release");
     GuiSlider((Rectangle){ 320, 130, 225, 40 }, NULL, NULL, 
-            params->release, 0.0f, 1.0f);
+            release, 0.0f, 1.0f);
 
     /* Filter ADSR envelope sliders */
     GuiGroupBox((Rectangle){ 625, 30, WIDTH / 2 - 50, 160 }, "Filter ADSR Envelope");
-
+    /* Attack */
     GuiLabel((Rectangle){ 750, 40, 100, 20}, "Attack");
     GuiSlider((Rectangle){ 655, 60, 225, 40 }, NULL, NULL, 
-            params->synth->filter->adsr->attack, 0.0f, 2.0f);
-
+            synth->filter->adsr->attack, 0.0f, 2.0f);
+    /* Decay */
     GuiLabel((Rectangle){ 750, 110, 100, 20}, "Decay");
     GuiSlider((Rectangle){ 655, 130, 225, 40 }, NULL, NULL, 
-            params->synth->filter->adsr->decay, 0.0f, 2.0f);
-
+            synth->filter->adsr->decay, 0.0f, 2.0f);
+    /* Sustain */
     GuiLabel((Rectangle){ 1010, 40, 100, 20}, "Sustain");
     GuiSlider((Rectangle){ 915, 60, 225, 40 }, NULL, NULL, 
-            params->synth->filter->adsr->sustain, 0.0f, 1.0f);
-
+            synth->filter->adsr->sustain, 0.0f, 1.0f);
+    /* Release */
     GuiLabel((Rectangle){ 1010, 110, 100, 20}, "Release");
     GuiSlider((Rectangle){ 915, 130, 225, 40 }, NULL, NULL, 
-            params->synth->filter->adsr->release, 0.0f, 1.0f);
+            synth->filter->adsr->release, 0.0f, 1.0f);
 
     /* Oscillators waveforms */
     GuiGroupBox((Rectangle){ 30, 220, WIDTH / 2 - 50, 160 }, "Oscillators");
-
+    /* Oscillator A */
     GuiLabel((Rectangle){80, 255, 110, 20}, "Oscillator A");
     if (GuiDropdownBox((Rectangle){60, 275, 140, 40 }, 
         "#01#Sine wave;#02#Square wave;#03#Triangle wave;#04#Sawtooth wave", 
-        params->dropbox_a, *params->dropbox_a_b))
-    {
-        *params->dropbox_a_b = !*params->dropbox_a_b;
-    }
-    
-
+        wave_a, *ddm_a))
+            *ddm_a = !*ddm_a;
+    /* Oscillator B */
     GuiLabel((Rectangle){250, 255, 110, 20}, "Oscillator B");
     if (GuiDropdownBox((Rectangle){230, 275, 140, 40 }, 
         "#01#Sine wave;#02#Square wave;#03#Triangle wave;#04#Sawtooth wave", 
-        params->dropbox_b, *params->dropbox_b_b))
-    {
-        *params->dropbox_b_b = !*params->dropbox_b_b;
-    }
-    
-
-            
+        wave_b, *ddm_b))
+            *ddm_b = !*ddm_b;
+    /* Oscillator C */
     GuiLabel((Rectangle){420, 255, 110, 20}, "Oscillator C");
     if (GuiDropdownBox((Rectangle){400, 275, 140, 40 }, 
         "#01#Sine wave;#02#Square wave;#03#Triangle wave;#04#Sawtooth wave", 
-        params->dropbox_c, *params->dropbox_c_b))
-    {
-        *params->dropbox_c_b = !*params->dropbox_c_b;
-    }
+        wave_c, *ddm_c))
+            *ddm_c = !*ddm_c;
     
-
-
     /* Synth parameters */
     GuiGroupBox((Rectangle){ 625, 220, WIDTH / 2 - 50, 160 }, "Synth parameters");
-
+    /* Filter cutoff */
     GuiLabel((Rectangle){ 695, 230, 100, 20}, "Cutoff");
     GuiSlider((Rectangle){ 645, 250, 170, 40 }, NULL, NULL, 
-            &params->synth->filter->cutoff, 0.0f, 1.0f);
-
+            &synth->filter->cutoff, 0.0f, 1.0f);
+    /* Synth detune effect */
     GuiLabel((Rectangle){ 695, 300, 100, 20}, "Detune");
     GuiSlider((Rectangle){ 645, 320, 170, 40 }, NULL, NULL, 
-            &params->synth->detune, 0.0f, 1.0f);
-
+            &synth->detune, 0.0f, 1.0f);
+    /* Amplification */
     GuiLabel((Rectangle){ 955, 230, 100, 20}, "Amp");
     GuiSlider((Rectangle){ 840, 250, 170, 40 }, NULL, NULL, 
-            &params->synth->amp, 0.0f, 1.0f);
-
+            &synth->amp, 0.0f, 1.0f);
+    /* Filter ADSR ON/OFF */
     GuiCheckBox((Rectangle){840, 320, 40, 40}, "Filter ADSR", 
-            &params->synth->filter->env);
+            &synth->filter->env);
 
-
+    /* Saving preset */
     if (GuiButton((Rectangle){ 1030, 250, 100, 40 }, "Save preset"))
-    {
-        *params->saving_preset = true;
-    }
+        *saving_preset = true;
 
+    if (*saving_preset)
+        save_preset(
+            synth, 
+            attack, decay, sustain, release,
+            wave_a, wave_b, wave_c,
+            preset_filename, saving_preset);
+            
+    /* Loading preset */
     if (GuiButton((Rectangle){ 1030, 320, 100, 40 }, "Load preset"))
-    {
-        load_preset(params);
-    }
-
-    if (*params->saving_preset)
-        save_preset(params);
+        load_preset(
+            synth, 
+            attack, decay, sustain, release,
+            wave_a, wave_b, wave_c);
 }
 
 
@@ -199,7 +199,7 @@ render_key(int midi_note)
 
     DrawRectangle(x, y, width, height, (Color){151, 232, 255, 255});
     DrawRectangleLines(x, y, width, height, BLACK);
-    /* Avoid double thick line */
+    /* Avoid double thick line when pressing a white key */
     if (!is_black) DrawLine(x + width, y, x + width, y + height - 1, (Color){151, 232, 255, 255});
 }
 
@@ -241,359 +241,4 @@ is_black_key(int midi_note)
 {
     int note = midi_note % 12;
     return (note == 1 || note == 3 || note == 6 || note == 8 || note == 10);
-}
-
-int 
-save_preset(params_t *params)
-{
-    char filename[1024] = "presets/";
-
-    int res = GuiTextInputBox((Rectangle){ WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Preset name :", "", "Save preset", params->filename,  20, false); 
-
-    if (res == 0)
-        *params->saving_preset = false;
-    else if (res == 1)
-    {
-        *params->saving_preset = false;
-        strcat(filename, params->filename);
-        strcat(filename, ".xml");
-
-        char text_element[1024];
-
-        xmlDocPtr doc = NULL;
-        xmlNodePtr root_node = NULL;
-        xmlNodePtr adsr_node = NULL;
-        xmlNodePtr filter_node = NULL;
-        xmlNodePtr filter_adsr_node = NULL;
-        xmlNodePtr osc_node = NULL;
-        xmlNodePtr effects_node = NULL;
-
-        LIBXML_TEST_VERSION
-
-        doc = xmlNewDoc(BAD_CAST "1.0");
-
-        root_node = xmlNewNode(NULL, BAD_CAST "preset");
-        xmlDocSetRootElement(doc, root_node);
-
-        /* ADSR */
-        adsr_node = xmlNewChild(root_node, NULL, BAD_CAST "adsr", NULL);
-        /* Attack */
-        snprintf(text_element, 1024, "%.2f", *params->attack);
-        xmlNewChild(adsr_node, NULL, BAD_CAST "attack", BAD_CAST text_element);
-        /* Decay */
-        snprintf(text_element, 1024, "%.2f", *params->decay);
-        xmlNewChild(adsr_node, NULL, BAD_CAST "decay", BAD_CAST text_element);
-        /* Sustain */
-        snprintf(text_element, 1024, "%.2f", *params->sustain);
-        xmlNewChild(adsr_node, NULL, BAD_CAST "sustain", BAD_CAST text_element);
-        /* Release */
-        snprintf(text_element, 1024, "%.2f", *params->release);
-        xmlNewChild(adsr_node, NULL, BAD_CAST "release", BAD_CAST text_element);
-
-        /* Filter */
-        filter_node = xmlNewChild(root_node, NULL, BAD_CAST "filter", NULL);
-        /* Filter ADSR */
-        filter_adsr_node = xmlNewChild(filter_node, NULL, BAD_CAST "filter_adsr", NULL);
-        /* Attack */
-        snprintf(text_element, 1024, "%.2f", *params->synth->filter->adsr->attack);
-        xmlNewChild(filter_adsr_node, NULL, BAD_CAST "attack", BAD_CAST text_element);
-        /* Decay */
-        snprintf(text_element, 1024, "%.2f", *params->synth->filter->adsr->decay);
-        xmlNewChild(filter_adsr_node, NULL, BAD_CAST "decay", BAD_CAST text_element);
-        /* Sustain */
-        snprintf(text_element, 1024, "%.2f", *params->synth->filter->adsr->sustain);
-        xmlNewChild(adsr_node, NULL, BAD_CAST "sustain", BAD_CAST text_element);
-        /* Release */
-        snprintf(text_element, 1024, "%.2f", *params->synth->filter->adsr->release);
-        xmlNewChild(filter_adsr_node, NULL, BAD_CAST "release", BAD_CAST text_element);
-        /* Filter cutoff */
-        snprintf(text_element, 1024, "%.2f", params->synth->filter->cutoff);
-        xmlNewChild(filter_node, NULL, BAD_CAST "cutoff", BAD_CAST text_element);
-        /* Filter envelope ON/OFF */
-        snprintf(text_element, 1024, "%d", params->synth->filter->env);
-        xmlNewChild(filter_node, NULL, BAD_CAST "envelope_on", BAD_CAST text_element);
-
-        /* Oscillators waveforms */
-        osc_node = xmlNewChild(root_node, NULL, BAD_CAST "oscillators", NULL);
-        /* Oscillator A */
-        snprintf(text_element, 1024, "%d", *params->dropbox_a);
-        xmlNewChild(osc_node, NULL, BAD_CAST "osc_a", BAD_CAST text_element);
-        /* Oscillator B */
-        snprintf(text_element, 1024, "%d", *params->dropbox_b);
-        xmlNewChild(osc_node, NULL, BAD_CAST "osc_b", BAD_CAST text_element);
-        /* Oscillator C */
-        snprintf(text_element, 1024, "%d", *params->dropbox_c);
-        xmlNewChild(osc_node, NULL, BAD_CAST "osc_c", BAD_CAST text_element);
-
-        /* Effects */
-        effects_node = xmlNewChild(root_node, NULL, BAD_CAST "effects", NULL);
-        /* Detune */
-        snprintf(text_element, 1024, "%.2f", params->synth->detune);
-        xmlNewChild(effects_node, NULL, BAD_CAST "detune", BAD_CAST text_element);
-        /* Amplification */
-        snprintf(text_element, 1024, "%.2f", params->synth->amp);
-        xmlNewChild(effects_node, NULL, BAD_CAST "amp", BAD_CAST text_element);
-
-        
-        xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
-        xmlFreeDoc(doc);
-        xmlCleanupParser();
-        xmlMemoryDump();
-    }
-    
-    return 0;
-}
-
-int 
-load_preset(params_t *params)
-{
-
-    
-    char filename[1024];
-    FILE *f = popen("zenity --file-selection", "r");
-    fgets(filename, 1024, f);
-    filename[strcspn(filename, "\n")] = '\0';
-    pclose(f);
-
-    xmlDoc *doc = NULL;
-    xmlNode *root = NULL;
-    xmlNode *node = NULL;
-
-    doc = xmlReadFile(filename, NULL, 0);
-
-    if (doc == NULL)
-    {
-        fprintf(stderr, "failed to parse xml file.\n");
-        return 1;
-    }
-
-    root = xmlDocGetRootElement(doc);
-
-    for (node = root->children; node; node = node->next)
-    {
-        if (node->type == XML_ELEMENT_NODE &&
-            xmlStrcmp(node->name, BAD_CAST "adsr") == 0)
-        {
-            parse_adsr(node, params, false);
-        }
-        else if (node->type == XML_ELEMENT_NODE &&
-            xmlStrcmp(node->name, BAD_CAST "filter") == 0)
-        {
-            xmlNode *child = NULL;
-
-            for (child = node->children; child; child = child->next)
-            {
-                if (child->type == XML_ELEMENT_NODE &&
-                    xmlStrcmp(child->name, BAD_CAST "filter_adsr") == 0)
-                {
-                    parse_adsr(child, params, true);
-                }
-                else if (child->type == XML_ELEMENT_NODE && 
-                        xmlStrcmp(child->name, BAD_CAST "cutoff") == 0)
-                {
-                    xmlChar *cutoff = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    float cutoff_float = strtof((const char *)cutoff, &end_ptr);
-                    if (end_ptr == (char *)cutoff)
-                    {
-                        fprintf(stderr, "bad cutoff value.\n");
-                        return 1;
-                    }
-                    if (cutoff_float > 1.0) cutoff_float = 1.0;
-                    else if (cutoff_float < 0.0) cutoff_float = 0.0;
-                    params->synth->filter->cutoff = cutoff_float;
-                }
-                else if (child->type == XML_ELEMENT_NODE &&
-                        xmlStrcmp(child->name, BAD_CAST "envelope_on") == 0)
-                {
-                    xmlChar *envelope_on = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    int env_on_int = strtol((const char *)envelope_on, &end_ptr, 10);
-                    if (end_ptr == (char *)envelope_on)
-                    {
-                        fprintf(stderr, "bad envelope value.\n");
-                        return 1;
-                    }
-                    if (env_on_int > 1) env_on_int = 1;
-                    else if (env_on_int < 0) env_on_int = 0;
-                    params->synth->filter->env = env_on_int;
-                }
-            }
-        }
-        else if (node->type == XML_ELEMENT_NODE &&
-                xmlStrcmp(node->name, BAD_CAST "oscillators") == 0)
-        {
-            xmlNode *child = NULL;
-
-            for (child = node->children; child; child = child->next)
-            {
-                if (child->type == XML_ELEMENT_NODE &&
-                    xmlStrcmp(child->name, BAD_CAST "osc_a") == 0)
-                {
-                    xmlChar *osc_a = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    short osc_a_wave = strtol((const char *)osc_a, &end_ptr, 10);
-                    if (end_ptr == (char *)osc_a)
-                    {
-                        fprintf(stderr, "bad osc a value.\n");
-                        return 1;
-                    }
-                    if (osc_a_wave > 4) osc_a_wave = 4;
-                    else if (osc_a_wave < 0) osc_a_wave = 0;
-                    *params->dropbox_a = osc_a_wave;
-                }
-                else if (child->type == XML_ELEMENT_NODE &&
-                    xmlStrcmp(child->name, BAD_CAST "osc_b") == 0)
-                {
-                    xmlChar *osc_b = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    short osc_b_wave = strtol((const char *)osc_b, &end_ptr, 10);
-                    if (end_ptr == (char *)osc_b)
-                    {
-                        fprintf(stderr, "bad osc b value.\n");
-                        return 1;
-                    }
-                    if (osc_b_wave > 3) osc_b_wave = 3;
-                    else if (osc_b_wave < 0) osc_b_wave = 0;
-                    *params->dropbox_b = osc_b_wave;
-                }
-                else if (child->type == XML_ELEMENT_NODE &&
-                    xmlStrcmp(child->name, BAD_CAST "osc_c") == 0)
-                {
-                    xmlChar *osc_c = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    short osc_c_wave = strtol((const char *)osc_c, &end_ptr, 10);
-                    if (end_ptr == (char *)osc_c)
-                    {
-                        fprintf(stderr, "bad osc b value.\n");
-                        return 1;
-                    }
-                    if (osc_c_wave > 3) osc_c_wave = 3;
-                    else if (osc_c_wave < 0) osc_c_wave = 0;
-                    *params->dropbox_c = osc_c_wave;
-                }
-            }
-        }
-        else if (node->type == XML_ELEMENT_NODE &&
-                xmlStrcmp(node->name, BAD_CAST "effects") == 0)
-        {
-            xmlNode *child = NULL;
-            for (child = node->children; child; child = child->next)
-            {
-                if (child->type == XML_ELEMENT_NODE &&
-                    xmlStrcmp(child->name, BAD_CAST "detune") == 0)
-                {
-                    xmlChar *detune = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    float detune_float = strtof((const char *)detune, &end_ptr);
-                    if (end_ptr == (char *)detune)
-                    {
-                        fprintf(stderr, "bad cutoff value.\n");
-                        return 1;
-                    }
-                    if (detune_float > 1.0) detune_float = 1.0;
-                    else if (detune_float < 0.0) detune_float = 0.0;
-                    params->synth->detune = detune_float;
-                }
-                else if (child->type == XML_ELEMENT_NODE &&
-                        xmlStrcmp(child->name, BAD_CAST "amp") == 0)
-                {
-                    xmlChar *amp = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    float amp_float = strtof((const char*)amp, &end_ptr);
-                    if (end_ptr == (char *)amp)
-                    {
-                        fprintf(stderr, "bad cutoff value.\n");
-                        return 1;
-                    }
-                    if (amp_float > 1.0) amp_float = 1.0;
-                    else if (amp_float < 0.0) amp_float = 0.0;
-                    params->synth->amp = amp_float;
-                }
-            }
-        }
-    }
-    return 0;
-}
-
-int 
-parse_adsr(xmlNode *adsr_root_node, params_t *params, bool filter)
-{
-    xmlNode *child = NULL;
-    for (child = adsr_root_node->children; child; child = child->next)
-    {
-        if (child->type == XML_ELEMENT_NODE &&
-            xmlStrcmp(child->name, BAD_CAST "attack") == 0)
-        {
-            xmlChar *attack = xmlNodeGetContent(child);
-            char *end_ptr = NULL;
-            float attack_float = strtof((const char*)attack, &end_ptr);
-            if (end_ptr == (char *)attack)
-            {
-                fprintf(stderr, "bad attack value.\n");
-                return 1;
-            }
-            if (attack_float > 2.0) attack_float = 2.0;
-            else if (attack_float < 0.0) attack_float = 0.0;
-            if (filter)
-                *params->synth->filter->adsr->attack = attack_float;
-            else
-                *params->attack = attack_float;
-        }
-        else if (child->type == XML_ELEMENT_NODE &&
-                xmlStrcmp(child->name, BAD_CAST "decay") == 0)
-        {
-            xmlChar *decay = xmlNodeGetContent(child);
-            char *end_ptr = NULL;
-            float decay_float = strtof((const char*)decay, &end_ptr);
-            if (end_ptr == (char *)decay)
-            {
-                fprintf(stderr, "bad decay value.\n");
-                return 1;
-            }
-            if (decay_float > 2.0) decay_float = 2.0;
-            else if (decay_float < 0.0) decay_float = 0.0;
-            if (filter)
-                *params->synth->filter->adsr->decay = decay_float;
-            else
-                *params->decay = decay_float;
-        }
-        else if (child->type == XML_ELEMENT_NODE &&
-                xmlStrcmp(child->name, BAD_CAST "sustain") == 0)
-        {
-            xmlChar *sustain = xmlNodeGetContent(child);
-            char *end_ptr = NULL;
-            float sustain_float = strtof((const char*)sustain, &end_ptr);
-            if (end_ptr == (char *)sustain)
-            {
-                fprintf(stderr, "bad sustain value.\n");
-                return 1;
-            }
-            if (sustain_float > 2.0) sustain_float = 2.0;
-            else if (sustain_float < 0.0) sustain_float = 0.0;
-            if (filter)
-                *params->synth->filter->adsr->sustain = sustain_float;
-            else
-                *params->sustain = sustain_float;
-        }
-        else if (child->type == XML_ELEMENT_NODE &&
-                xmlStrcmp(child->name, BAD_CAST "release") == 0)
-        {
-            xmlChar *release = xmlNodeGetContent(child);
-            char *end_ptr = NULL;
-            float release_float = strtof((const char*)release, &end_ptr);
-            if (end_ptr == (char *)release)
-            {
-                fprintf(stderr, "bad release value.\n");
-                return 1;
-            }
-            if (release_float > 2.0) release_float = 2.0;
-            else if (release_float < 0.0) release_float = 0.0;
-            if (filter)
-                *params->synth->filter->adsr->release = release_float;
-            else
-                *params->release = release_float;
-        }
-    }
-    return 0;
 }

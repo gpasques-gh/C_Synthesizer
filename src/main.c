@@ -179,6 +179,13 @@ int main(int argc, char **argv)
         goto cleanup_alsa;
     }
 
+    if (midi_input)
+        if (snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK) < 0)
+        {
+            fprintf(stderr, "error while opening midi device %s\n", midi_device);
+            goto cleanup_alsa;
+        }
+
     snd_pcm_prepare(handle);
 
     short buffer[FRAMES];
@@ -189,52 +196,21 @@ int main(int argc, char **argv)
         snd_pcm_writei(handle, buffer, FRAMES);
     }
 
-    
-    if (midi_input)
-        if (snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK) < 0)
-        {
-            fprintf(stderr, "error while opening midi device %s\n", midi_device);
-            goto cleanup_alsa;
-        }
-
-    bool dropbox_a_b = false, dropbox_b_b = false, dropbox_c_b = false, saving_preset = false;
+    bool ddm_a = false, ddm_b = false, ddm_c = false, saving_preset = false;
     char filename[1024] = "\0";
-
-    params_t params =
-    {
-        .filename = filename,
-        .attack = &attack,
-        .decay = &decay,
-        .sustain = &sustain,
-        .release = &release,
-        .filter_envelope = filter.adsr,
-        .synth = &synth,
-        .dropbox_a = &osc_a,
-        .dropbox_b = &osc_b,
-        .dropbox_c = &osc_c,
-        .dropbox_a_b = &dropbox_a_b,
-        .dropbox_b_b = &dropbox_b_b,
-        .dropbox_c_b = &dropbox_c_b,
-        .saving_preset = &saving_preset
-    };
-
-    
-    
     
     InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
     Font annotation = LoadFont("Regular.ttf");
     GuiSetFont(annotation);
     GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * 0.5); 
-    
 
     while (!WindowShouldClose())
     {
-        if (keyboard_input && !*params.saving_preset)
+        if (keyboard_input && !saving_preset)
         {
             handle_input(&synth, keyboard_layout, &octave);
             handle_release(&synth, keyboard_input, octave);
         }
-        
 
         if (midi_input)
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
@@ -256,13 +232,17 @@ int main(int argc, char **argv)
         BeginDrawing();
             ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
             render_waveform(buffer);
-            render_informations(&params);
+            render_informations(
+                &synth,
+                &attack, &decay, &sustain, &release,
+                &osc_a, &osc_b, &osc_c,
+                &ddm_a, &ddm_b, &ddm_c,
+                filename, &saving_preset);
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
                 if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
                     render_key(synth.voices[v].note);
 
-                
             render_black_keys();
             for (int v = 0; v < VOICES; v++)
                 if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
