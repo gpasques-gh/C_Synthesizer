@@ -76,7 +76,7 @@ save_preset(
         xmlNewChild(filter_adsr_node, NULL, BAD_CAST "decay", BAD_CAST text_element);
         /* Sustain */
         snprintf(text_element, 1024, "%.2f", *synth->filter->adsr->sustain);
-        xmlNewChild(adsr_node, NULL, BAD_CAST "sustain", BAD_CAST text_element);
+        xmlNewChild(filter_adsr_node, NULL, BAD_CAST "sustain", BAD_CAST text_element);
         /* Release */
         snprintf(text_element, 1024, "%.2f", *synth->filter->adsr->release);
         xmlNewChild(filter_adsr_node, NULL, BAD_CAST "release", BAD_CAST text_element);
@@ -135,7 +135,7 @@ load_preset(
     int *wave_a, int *wave_b, int *wave_c)
 {
     char filename[1024];
-    FILE *f = popen("zenity --file-selection", "r");
+    FILE *f = popen("zenity --file-selection --filename '/home/germain/C_Synthesizer/presets/' --file-filter '*.xml'", "r");
     fgets(filename, 1024, f);
     filename[strcspn(filename, "\n")] = '\0';
     pclose(f);
