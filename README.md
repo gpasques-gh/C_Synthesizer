@@ -13,6 +13,7 @@ Not tested, but MIDI can maybe work in a Linux VM using USB passthrough, althoug
 - MIDI input
 - Raygui graphical user interface
 - Saving and loading presets configurations XML files
+- Recording the synth output into a WAV file
 
 # GUI 🖼️
 The GUI shows all of the informations about the synth and let the user configure its parameters graphically :
