@@ -14,6 +14,8 @@
 void handle_input(synth_t *synth, int layout, int *octave)
 {
     int octave_length = *octave * 12;
+
+    /* Basically going through the whole keys to see if they have been pressed in that frame */
     if (IsKeyPressed(kC_QWERTY))
         if (layout == QWERTY)
             assign_note(synth, octave_length + nC);
@@ -47,15 +49,17 @@ void handle_input(synth_t *synth, int layout, int *octave)
     if (IsKeyPressed(kB))
         assign_note(synth, octave_length + nB);
     if (IsKeyPressed(KEY_UP))
-        (*octave)++;
+        (*octave)++; /* Moving an octave up on the keyboard */
     else if (IsKeyPressed(KEY_DOWN))
-        (*octave)--;
+        (*octave)--; /* Moving an octave down on the keyboard */
 }
 
 /* Free the synth voices when their assigned note key are being released */
 void handle_release(synth_t *synth, int layout, int octave)
 {
     int octave_length = octave * 12;
+    
+    /* Basically going through the whole keys to see if they have been released in that frame */
     if (IsKeyReleased(kC_QWERTY))
         if (layout == QWERTY)
             release_note(synth, octave_length + nC);
@@ -101,6 +105,7 @@ void assign_note(synth_t *synth, int midi_note)
             if (synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
                 active_voices++;
 
+            /* Cutting all the voices that are in ADSR release state to avoid blocking voices */
             if (synth->voices[v].adsr->state == ENV_RELEASE)
             {
                 synth->voices[v].active = 0;
@@ -109,11 +114,16 @@ void assign_note(synth_t *synth, int midi_note)
             }
         }
 
+        /* Getting the first free voice to assign a note to*/
         voice_t *free_voice = get_free_voice(synth);
         if (free_voice == NULL)
             return;
+        
+        /* Changing the frequency of the oscillators of that voice */
         change_freq(free_voice, midi_note, 127, synth->detune);
-        if (active_voices == 0)
+        
+        /* If it's the first note we hit and the filter ADSR is ON, launch filter ADSR */
+        if (active_voices == 0 && synth->filter->env)
             synth->filter->adsr->state = ENV_ATTACK;
         return;
     }
@@ -122,10 +132,15 @@ void assign_note(synth_t *synth, int midi_note)
 /* Release a note from a synth voice, does nothing if the note isn't pressed */
 void release_note(synth_t *synth, int midi_note)
 {
+    /* We loop over the voices of the synthesizer */
     for (int v = 0; v < VOICES; v++)
-        if (synth->voices[v].note == midi_note && synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
+        /* If the voice is active, is not in ADSR release state and has the correct MIDI note assigned to it, 
+        put it in ADSR release state */
+        if (synth->voices[v].note == midi_note && 
+            synth->voices[v].active && 
+            synth->voices[v].adsr->state != ENV_RELEASE)
         {
             synth->voices[v].adsr->state = ENV_RELEASE;
-            break;
+            break; /* Two voices can't have the same note, we can break */
         }
 }

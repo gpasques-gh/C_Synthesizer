@@ -30,14 +30,14 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    snd_pcm_t *handle = NULL;
-    snd_rawmidi_t *midi_in = NULL;
+    
 
     char midi_device[256];
     int midi_input = 0;
     int keyboard_input = 0;
     int keyboard_layout = QWERTY;
 
+    /* CLI arguments handling */
     if (strcmp(argv[1], "-kb") == 0 && argc == 2)
         keyboard_input = 1;
     else if (strcmp(argv[1], "-kb") == 0 && argc == 3)
@@ -79,18 +79,22 @@ int main(int argc, char **argv)
 
     int octave = DEFAULT_OCTAVE;
 
+    /* Oscillators waveforms */
     int osc_a = SINE_WAVE, osc_b = SINE_WAVE, osc_c = SINE_WAVE;
 
+    /* Synthesizer ADSR envelope parameters*/
     float attack = 0.2;
     float decay = 0.3;
     float sustain = 0.7;
     float release = 0.2;
 
+    /* Filter ADSR envelope parameters*/
     float filter_attack = 0.0;
     float filter_decay = 0.3;
     float filter_sustain = 0.0;
     float filter_release = 0.2;
 
+    /* Initialize the filter ADSR envelope */
     adsr_t filter_adsr =
         {
             .attack = &filter_attack,
@@ -98,6 +102,7 @@ int main(int argc, char **argv)
             .sustain = &filter_sustain,
             .release = &filter_release};
 
+    /* Initialize the filter */
     lp_filter_t filter =
         {
             .cutoff = 0.5,
@@ -106,6 +111,7 @@ int main(int argc, char **argv)
             .adsr = &filter_adsr,
             .env = false};
 
+    /* Initialize the synthesizer */
     synth_t synth =
         {
             .voices = malloc(sizeof(voice_t) * VOICES),
@@ -119,11 +125,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    /* Create the synth voices */
     for (int i = 0; i < VOICES; i++)
     {
+        /* Allocate voices */
         synth.voices[i].adsr = malloc(sizeof(adsr_t));
         if (synth.voices[i].adsr == NULL)
-        {
+        {   /* Allocation error */
             fprintf(stderr, "memory allocation failed.\n");
             for (int j = 0; j < i; j++)
             {
@@ -134,38 +142,49 @@ int main(int argc, char **argv)
             return 1;
         }
 
+        /* ADSR envelope */
         synth.voices[i].adsr->attack = &attack;
         synth.voices[i].adsr->decay = &decay;
         synth.voices[i].adsr->sustain = &sustain;
         synth.voices[i].adsr->release = &release;
         synth.voices[i].adsr->state = ENV_IDLE;
         synth.voices[i].adsr->output = 0.0;
+
+        /* Note and activation */
         synth.voices[i].note = 0;
         synth.voices[i].velocity_amp = 0.0;
         synth.voices[i].active = 0;
 
+        /* Allocate oscillators */
         synth.voices[i].oscillators = malloc(sizeof(osc_t) * 3);
         if (synth.voices[i].oscillators == NULL)
-        {
+        {   /* Allocation error*/
             fprintf(stderr, "memory allocation failed.\n");
             goto cleanup_synth;
         }
+
+        /* Initializing oscillators*/
         for (int j = 0; j < 3; j++)
-        {
+        { 
             synth.voices[i].oscillators[j].freq = 0.0;
             synth.voices[i].oscillators[j].phase = 0.0;
         }
+
+        /* Initializing oscillators wave pointers */
         synth.voices[i].oscillators[0].wave = &osc_a;
         synth.voices[i].oscillators[1].wave = &osc_b;
         synth.voices[i].oscillators[2].wave = &osc_c;
     }
 
+    /* Open sound card */
+    snd_pcm_t *handle = NULL;
     if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
         fprintf(stderr, "error while opening sound card.\n");
         goto cleanup_synth;
     }
 
+    /* Initialize sound card parameters */
     int params_err = snd_pcm_set_params(
         handle,
         SND_PCM_FORMAT_S16_LE,
@@ -177,16 +196,10 @@ int main(int argc, char **argv)
         fprintf(stderr, "error while setting sound card parameters: %s\n", snd_strerror(params_err));
         goto cleanup_alsa;
     }
-
-    if (midi_input)
-        if (snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK) < 0)
-        {
-            fprintf(stderr, "error while opening midi device %s\n", midi_device);
-            goto cleanup_alsa;
-        }
-
+    
     snd_pcm_prepare(handle);
 
+    /* 5 sound buffer of silence to avoid noise at start */
     short buffer[FRAMES];
     for (int i = 0; i < 5; i++)
     {
@@ -195,14 +208,27 @@ int main(int argc, char **argv)
         snd_pcm_writei(handle, buffer, FRAMES);
     }
 
+    /* Initialize MIDI input */
+    snd_rawmidi_t *midi_in;
+    if (midi_input)
+        if (snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK) < 0)
+        {
+            fprintf(stderr, "error while opening midi device %s\n", midi_device);
+            goto cleanup_alsa;
+        }
+
+    /* WAV file related variables */
     char audio_filename[1024] = "\0";
     FILE *fwav = NULL;
     wav_header_t header;
 
-    bool ddm_a = false, ddm_b = false, ddm_c = false, saving_preset = false, recording = false, saving_audio_file = false;
+    /* GUI rendering and interacting variables */
+    bool ddm_a = false, ddm_b = false, ddm_c = false;
+    bool saving_preset = false, recording = false, saving_audio_file = false;
     char filename[1024] = "\0";
     unsigned int count = 0;
 
+    /* Initialize raylib window and font */
     InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
     Font annotation = LoadFont("Regular.ttf");
     GuiSetFont(annotation);
@@ -210,36 +236,41 @@ int main(int argc, char **argv)
 
     while (!WindowShouldClose())
     {
+        /* Getting keyboard input if we are not currently inputing a preset or an audio file name*/
         if (keyboard_input && !saving_preset && !saving_audio_file)
         {
             handle_input(&synth, keyboard_layout, &octave);
             handle_release(&synth, keyboard_input, octave);
         }
 
+        /* If we are using MIDI, get the MIDI input */
         if (midi_input)
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
 
+        /* Render the synth into the sound buffer*/
         render_synth(&synth, buffer);
 
+        /* Write the buffer to the sound card */
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE)
-        {
+        {   /* If the application underruned*/
             fprintf(stderr, "ALSA underrun!\n");
             snd_pcm_prepare(handle);
         }
         else if (err < 0)
-        {
+        {   /* Error during the writing of the buffer into the sound card */
             fprintf(stderr, "ALSA write error: %s\n", snd_strerror(err));
             snd_pcm_prepare(handle);
         }
 
+        /* WAV file management */
         if (fwav != NULL && recording == true)
-        {
+        {   /* We write the sound buffer to the WAV file */
             fwrite(buffer, 2, FRAMES, fwav);
             count++;
         }
         else if (fwav == NULL && recording == true)
-        {
+        {   /* We initialize the WAV header and create the wav file with the given filename */
             char audio_full_filename[1024] = "audio/";
             strcat(audio_full_filename, audio_filename);
             strcat(audio_full_filename, ".wav");
@@ -248,7 +279,7 @@ int main(int argc, char **argv)
             audio_filename[0] = '\0';
         }
         else if (fwav != NULL && recording == false)
-        {
+        {   /* We are changing the WAV header to have the correct byte size for the data field */
             header.sub2_size = FRAMES * count * (unsigned int)header.num_channels * (unsigned int)header.bits_per_sample / 8;
             header.chunk_size = (unsigned int)header.sub2_size + 36;
             fseek(fwav, 0, SEEK_SET);
@@ -258,6 +289,7 @@ int main(int argc, char **argv)
             count = 0;
         }
 
+        /* Drawing the GUI */
         BeginDrawing();
             ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
             render_waveform(buffer);
@@ -268,6 +300,9 @@ int main(int argc, char **argv)
                 &ddm_a, &ddm_b, &ddm_c,
                 filename, audio_filename,
                 &saving_preset, &saving_audio_file, &recording);
+
+            /* We render the white keys and the pressed white keys before the black keys 
+            so that the black keys correctly overlap with the white keys */
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
                 if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
@@ -285,7 +320,8 @@ int main(int argc, char **argv)
     if (midi_in)
         snd_rawmidi_close(midi_in);
 
-    if (fwav != NULL)
+    /* If we quit the application during recording */
+    if (fwav != NULL && recording)
     {
         header.sub2_size = FRAMES * count * (unsigned int)header.num_channels * (unsigned int)header.bits_per_sample / 8;
         header.chunk_size = (unsigned int)header.sub2_size + 36;

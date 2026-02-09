@@ -16,7 +16,7 @@ float adsr_process(adsr_t *adsr)
         break;
     case ENV_ATTACK:
         if (*adsr->attack > 0.0)
-        { /* Increment the amplification by the attack amount */
+        {   /* Increment the amplification by the attack amount */
             double increment = 1.0 / (*adsr->attack * RATE);
             adsr->output += increment;
             if (adsr->output >= 1.0)
@@ -26,7 +26,7 @@ float adsr_process(adsr_t *adsr)
             }
         }
         else
-        {
+        {   /* If no attack, go in decay */
             adsr->output = 1.0;
             adsr->state = ENV_DECAY;
         }
@@ -35,7 +35,7 @@ float adsr_process(adsr_t *adsr)
         if (*adsr->decay > 0.0)
         {
             if (*adsr->sustain > 0.0)
-            { /* Decrement the amplification by the decay amount relatively to the sustain amount */
+            {   /* Decrement the amplification by the decay amount relatively to the sustain amount */
                 float decrement = (1.0 - *adsr->sustain) / (*adsr->decay * RATE);
                 adsr->output -= decrement;
 
@@ -46,7 +46,7 @@ float adsr_process(adsr_t *adsr)
                 }
             }
             else
-            { /* Decrement the amplification by the decay amount relatively to the release amount */
+            {   /* Decrement the amplification by the decay amount relatively to the release amount */
                 float decrement = (1.0 - *adsr->release) / (*adsr->decay * RATE);
                 adsr->output -= decrement;
 
@@ -58,12 +58,13 @@ float adsr_process(adsr_t *adsr)
             }
         }
         else
-        {
+        {   /* If there is sustain, go in sustain */
             if (*adsr->sustain > 0.0)
             {
                 adsr->output = *adsr->sustain;
                 adsr->state = ENV_SUSTAIN;
             }
+            /* Else go in release */
             else
             {
                 adsr->output = *adsr->release;
@@ -72,19 +73,19 @@ float adsr_process(adsr_t *adsr)
         }
         break;
     case ENV_SUSTAIN:
-
         if (*adsr->sustain == 0.0)
-        { /* Increment the amplification by the attack amount */
+        {   /* Increment the amplification by the attack amount */
             float decrement = adsr->output / (*adsr->release * RATE);
             adsr->output -= decrement;
             adsr->state = ENV_RELEASE;
         }
-        else
+        else 
+            /* We put the amplification at the sustain level */
             adsr->output = *adsr->sustain;
         break;
     case ENV_RELEASE:
         if (*adsr->release > 0.0)
-        { /* Decrement the amplification by the release amount */
+        {   /* Decrement the amplification by the release amount */
             float decrement = adsr->output / (*adsr->release * RATE);
             adsr->output -= decrement;
             if (adsr->output <= 0.001)
@@ -94,12 +95,13 @@ float adsr_process(adsr_t *adsr)
             }
         }
         else
-        {
+        {   /* If no release, go in idle state */
             adsr->output = 0.0;
             adsr->state = ENV_IDLE;
         }
         break;
     }
+    /* Return the amplification of the ADSR envelope */
     return adsr->output;
 }
 
@@ -230,7 +232,7 @@ void change_freq(voice_t *voice, int note,
 void apply_detune_change(synth_t *synth)
 {
     for (int v = 0; v < VOICES; v++)
-    { /* Applying detune changes to each voice of the synthesizer */
+    {   /* Applying detune changes to each voice of the synthesizer */
         int a4_diff = synth->voices[v].note - A4_POSITION;
         synth->voices[v].oscillators[1].freq = A_4 * pow(2, a4_diff / 12.0) + (5 * synth->detune);
         synth->voices[v].oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0) - (5 * synth->detune);
@@ -263,18 +265,20 @@ double
 lp_process(lp_filter_t *filter, double input,
            float cutoff)
 {
+    /* Clipping */
     if (cutoff > 1.0f)
         cutoff = 1.0f;
     if (cutoff < 0.0f)
         cutoff = 0.0f;
 
+    /* Calculating the filter amplification */
     float frequency = cutoff * (RATE / 8.0f);
     float omega = 2.0f * M_PI * frequency / RATE;
     float alpha = omega / (omega + 1.0f);
-
     float input_f = (float)input;
     float output = alpha * input_f + (1.0f - alpha) * filter->prev_output;
 
+    /* Setting the previous output and input of the filter */
     filter->prev_output = output;
     filter->prev_input = input_f;
 

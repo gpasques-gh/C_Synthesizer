@@ -19,12 +19,16 @@ int save_preset(
     int *wave_a, int *wave_b, int *wave_c,
     char *preset_filename, bool *saving_preset)
 {
+
     char filename[1024] = "presets/";
 
+    /* Textbox for the preset name */
     int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Preset name :", "", "Save preset", preset_filename, 20, false);
 
     if (res == 0)
+        /* If the textbox is closed */
         *saving_preset = false;
+    /* If the textbox is submitted */
     else if (res == 1)
     {
         *saving_preset = false;
@@ -33,7 +37,10 @@ int save_preset(
 
         char text_element[1024];
 
+        /* Getting the XML document pointer */
         xmlDocPtr doc = NULL;
+
+        /* Getting the XML node pointers*/
         xmlNodePtr root_node = NULL;
         xmlNodePtr adsr_node = NULL;
         xmlNodePtr filter_node = NULL;
@@ -43,8 +50,10 @@ int save_preset(
 
         LIBXML_TEST_VERSION
 
+        /* Initializing the XML document */
         doc = xmlNewDoc(BAD_CAST "1.0");
 
+        /* Getting the root node */
         root_node = xmlNewNode(NULL, BAD_CAST "preset");
         xmlDocSetRootElement(doc, root_node);
 
@@ -137,10 +146,14 @@ int load_preset(
     filename[strcspn(filename, "\n")] = '\0';
     pclose(f);
 
+    /* Getting the XML document pointer */
     xmlDoc *doc = NULL;
+
+    /* Getting the XML node pointers*/
     xmlNode *root = NULL;
     xmlNode *node = NULL;
 
+    /* Reading the XML file into the XML document pointer */
     doc = xmlReadFile(filename, NULL, 0);
 
     if (doc == NULL)
@@ -149,6 +162,7 @@ int load_preset(
         return 1;
     }
 
+    /* Getting the root node of the XML document */
     root = xmlDocGetRootElement(doc);
 
     /* Looping on the main nodes */

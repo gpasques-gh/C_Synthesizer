@@ -159,15 +159,18 @@ void render_waveform(short *buffer)
 
     int step = 1;
 
+    /* Looping onto the frames of the buffer, 
+    the i = 13 and FRAMES - 11 is because the waveform would go horizontally past the GuiGroupBox */
     for (int i = 13; i < FRAMES - 11; i += step)
     {
+        /* x coordinates */
         int x1 = (i * WIDTH) / FRAMES;
         int x2 = ((i + step) * WIDTH) / FRAMES;
-
+        /* y coordinates */
         int y1 = y - ((buffer[i] * mid_y) / 32768);
         int y2 = y - ((buffer[i + step] * mid_y) / 32768);
 
-        /* Preventing going past the GuiGroupBox */
+        /* Preventing going vertically past the GuiGroupBox */
         if (y1 < 420)
             y1 = 420;
         if (y2 < 420)
@@ -177,6 +180,7 @@ void render_waveform(short *buffer)
         if (y2 > 580)
             y2 = 580;
 
+        /* Drawing the line */
         DrawLine(x1, y1, x2, y2, BLACK);
     }
 }
@@ -184,6 +188,7 @@ void render_waveform(short *buffer)
 /* Render the white keys from the MIDI piano visualizer */
 void render_white_keys()
 {
+    /* Drawing all of white keys */
     for (int i = 0; i < WHITE_KEYS; i++)
     {
         DrawRectangleLines(i * WHITE_KEYS_WIDTH, HEIGHT - WHITE_KEYS_HEIGHT,
@@ -196,12 +201,16 @@ void render_black_keys()
 {
     char black_keys_pattern[] = {1, 1, 0, 1, 1, 1, 0, 0};
     int white_key_index = 0;
+    /* Going from octave to octave */
     for (int octave = 0; octave <= (WHITE_KEYS / 7); octave++)
     {
+        /* Drawing all the black keys from the octave */
         for (int i = 0; i < 7; i++)
         {
+            /* If the index is a black key from the black key pattern */
             if (black_keys_pattern[i])
             {
+                /* Draw the black key */
                 int x = (white_key_index * WHITE_KEYS_WIDTH) + WHITE_KEYS_WIDTH - (BLACK_KEYS_WIDTH / 2);
                 DrawRectangle(x, HEIGHT - WHITE_KEYS_HEIGHT,
                               BLACK_KEYS_WIDTH, BLACK_KEYS_HEIGHT, BLACK);
@@ -218,10 +227,12 @@ void render_black_keys()
 /* Renders given note into a pressed key in the MIDI piano visualizer */
 void render_key(int midi_note)
 {
+    /* Getting the key position from the MIDI note */
     int width = 0, height = 0, x = 0, y = 0, is_black = 0;
     get_key_position(midi_note, &x, &y, &width, &height, &is_black);
-
+    /* Draw the pressed key onto the keyboard */
     DrawRectangle(x, y, width, height, (Color){151, 232, 255, 255});
+    /* Drawing black lines around it */
     DrawRectangleLines(x, y, width, height, BLACK);
     /* Avoid double thick line when pressing a white key */
     if (!is_black)
@@ -232,17 +243,21 @@ void render_key(int midi_note)
 void get_key_position(int midi_note, int *x, int *y,
                       int *width, int *height, int *is_black)
 {
+    /* The octave of the note and its place within that octave */
     int note_in_octave = midi_note % 12;
     int octave = midi_note / 12;
 
+    /* Black key map */
     static const int black_keys[] = {0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0};
     *is_black = black_keys[note_in_octave];
 
+    /* White key map  */
     static const int white_key_map[] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6};
     int white_key_in_octave = white_key_map[note_in_octave];
 
     int white_key_index = (octave * 7) + white_key_in_octave;
 
+    /* Black key rectangle */
     if (*is_black)
     {
         *width = WHITE_KEYS_WIDTH / 2;
@@ -250,6 +265,7 @@ void get_key_position(int midi_note, int *x, int *y,
         *x = (white_key_index * WHITE_KEYS_WIDTH) + WHITE_KEYS_WIDTH - (*width / 2);
         *y = HEIGHT - WHITE_KEYS_HEIGHT;
     }
+    /* White key rectangle */
     else
     {
         *width = WHITE_KEYS_WIDTH;
