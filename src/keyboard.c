@@ -87,19 +87,20 @@ void handle_release(synth_t *synth, int layout, int octave)
     if (IsKeyReleased(kA_SHARP))
         release_note(synth, octave_length + nA_SHARP);
     if (IsKeyReleased(kB))
-        release_note(synth, octave_length + nB);    
+        release_note(synth, octave_length + nB);
 }
 
+/* Assign a note to a free synth voice */
 void assign_note(synth_t *synth, int midi_note)
 {
     if (midi_note != -1)
     {
         int active_voices = 0;
-        for (int v = 0; v < VOICES; v++) 
+        for (int v = 0; v < VOICES; v++)
         {
             if (synth->voices[v].active && synth->voices[v].adsr->state != ENV_RELEASE)
                 active_voices++;
-            
+
             if (synth->voices[v].adsr->state == ENV_RELEASE)
             {
                 synth->voices[v].active = 0;
@@ -118,6 +119,7 @@ void assign_note(synth_t *synth, int midi_note)
     }
 }
 
+/* Release a note from a synth voice, does nothing if the note isn't pressed */
 void release_note(synth_t *synth, int midi_note)
 {
     for (int v = 0; v < VOICES; v++)

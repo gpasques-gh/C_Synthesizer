@@ -3,6 +3,7 @@
 
 #include "defs.h"
 
+/* Wav header structure */
 typedef struct 
 {
     unsigned char chunk_id[4];
@@ -20,10 +21,13 @@ typedef struct
     unsigned int sub2_size;
 } wav_header_t;
 
+/* Initialize wav header */
 int init_wav_header(wav_header_t *header);
 
+/* Initialize a wav file with a filename and wav header */
 int init_wav_file(char *fname, FILE **fwav, wav_header_t *header);
 
+/* Close a wav file */
 int close_wav_file(FILE *fwav);
 
 #endif 

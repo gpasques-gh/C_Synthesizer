@@ -1,7 +1,7 @@
 #include "record.h"
-
 #include "defs.h"
 
+/* Initialize wav header */
 int init_wav_header(wav_header_t *header)
 {
     header->chunk_id[0] = 'R';
@@ -40,6 +40,7 @@ int init_wav_header(wav_header_t *header)
     return 0;
 }
 
+/* Initialize a wav file with a filename and wav header */
 int init_wav_file(char *fname, FILE **fwav, wav_header_t *header)
 {
     *fwav = fopen(fname, "wb");
@@ -56,6 +57,7 @@ int init_wav_file(char *fname, FILE **fwav, wav_header_t *header)
     return 0;
 }
 
+/* Close a wav file */
 int close_wav_file(FILE *fwav)
 {
     if (fwav != NULL)

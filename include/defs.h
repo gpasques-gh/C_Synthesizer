@@ -67,7 +67,7 @@
 #define A_4 440
 #define RATE 44100
 #define DEFAULT_AMPLITUDE 0.5
-#define A4_POSITION 58 
+#define A4_POSITION 58
 
 /* Oscillators waveforms */
 #define SINE_WAVE 0
@@ -84,7 +84,6 @@
 #define WIDTH 1196
 #define HEIGHT 800
 #define TITLE "ALSA & SDL Synthesizer"
-
 
 /* MIDI piano visualizer */
 #define WHITE_KEYS 52

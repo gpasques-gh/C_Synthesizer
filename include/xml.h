@@ -16,14 +16,12 @@
  * - Detune effect
  * - Amplification
  */
-int 
-save_preset(
+int save_preset(
     synth_t *synth,
     float *attack, float *decay,
     float *sustain, float *release,
     int *wave_a, int *wave_b, int *wave_c,
     char *preset_filename, bool *saving_preset);
-
 
 /*
  * Load a preset from an XML file to the application :
@@ -34,20 +32,18 @@ save_preset(
  * - Detune effect
  * - Amplification
  */
-int
-load_preset(
+int load_preset(
     synth_t *synth,
     float *attack, float *decay,
     float *sustain, float *release,
     int *wave_a, int *wave_b, int *wave_c);
 
 /* Parse an ADSR XML Node whether it's basic ADSR of filter ADSR */
-int 
-parse_adsr(
-    xmlNode *adsr_root_node, 
+int parse_adsr(
+    xmlNode *adsr_root_node,
     synth_t *synth,
     float *attack, float *decay,
     float *sustain, float *release,
     bool filter);
 
-#endif 
+#endif

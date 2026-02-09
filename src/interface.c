@@ -10,7 +10,6 @@
 #include "synth.h"
 #include "xml.h"
 
-
 /*
  * Renders the global informations and menus about the synthesizer :
  * - ADSR envelope sliders
@@ -19,115 +18,114 @@
  * - Filter cutoff and filter envelope ON/OFF
  * - Amplification and detune effect
  */
-void 
-render_informations(
+void render_informations(
     synth_t *synth,
     float *attack, float *decay,
     float *sustain, float *release,
     int *wave_a, int *wave_b, int *wave_c,
     bool *ddm_a, bool *ddm_b, bool *ddm_c,
-    char *preset_filename, char *audio_filename, 
-    bool *saving_preset, bool *saving_audio_file,bool *recording)
+    char *preset_filename, char *audio_filename,
+    bool *saving_preset, bool *saving_audio_file, bool *recording)
 {
     GuiLabel((Rectangle){WIDTH / 2 - 115, 5, 230, 20}, "ALSA & raygui Synthesizer");
 
     /* ADSR envelope sliders */
-    GuiGroupBox((Rectangle){ 30, 40, WIDTH / 2 - 50, 160 }, "ADSR Envelope");
+    GuiGroupBox((Rectangle){30, 40, WIDTH / 2 - 50, 160}, "ADSR Envelope");
     /* Attack */
-    GuiLabel((Rectangle){ 150, 50, 100, 20}, "Attack");
-    GuiSlider((Rectangle){ 60, 70, 225, 40 }, NULL, NULL, 
-            attack, 0.0f, 2.0f);
+    GuiLabel((Rectangle){150, 50, 100, 20}, "Attack");
+    GuiSlider((Rectangle){60, 70, 225, 40}, NULL, NULL,
+              attack, 0.0f, 2.0f);
     /* Decay */
-    GuiLabel((Rectangle){ 150, 120, 100, 20}, "Decay");
-    GuiSlider((Rectangle){ 60, 140, 225, 40 }, NULL, NULL, 
-            decay, 0.0f, 2.0f);
+    GuiLabel((Rectangle){150, 120, 100, 20}, "Decay");
+    GuiSlider((Rectangle){60, 140, 225, 40}, NULL, NULL,
+              decay, 0.0f, 2.0f);
     /* Sustain */
-    GuiLabel((Rectangle){ 410, 50, 100, 20}, "Sustain");
-    GuiSlider((Rectangle){ 320, 70, 225, 40 }, NULL, NULL,
-            sustain, 0.0f, 1.0f);
+    GuiLabel((Rectangle){410, 50, 100, 20}, "Sustain");
+    GuiSlider((Rectangle){320, 70, 225, 40}, NULL, NULL,
+              sustain, 0.0f, 1.0f);
     /* Release */
-    GuiLabel((Rectangle){ 410, 120, 100, 20}, "Release");
-    GuiSlider((Rectangle){ 320, 140, 225, 40 }, NULL, NULL, 
-            release, 0.0f, 1.0f);
+    GuiLabel((Rectangle){410, 120, 100, 20}, "Release");
+    GuiSlider((Rectangle){320, 140, 225, 40}, NULL, NULL,
+              release, 0.0f, 1.0f);
 
     /* Filter ADSR envelope sliders */
-    GuiGroupBox((Rectangle){ 625, 40, WIDTH / 2 - 50, 160 }, "Filter ADSR Envelope");
+    GuiGroupBox((Rectangle){625, 40, WIDTH / 2 - 50, 160}, "Filter ADSR Envelope");
     /* Attack */
-    GuiLabel((Rectangle){ 745, 50, 100, 20}, "Attack");
-    GuiSlider((Rectangle){ 655, 70, 225, 40 }, NULL, NULL, 
-            synth->filter->adsr->attack, 0.0f, 2.0f);
+    GuiLabel((Rectangle){745, 50, 100, 20}, "Attack");
+    GuiSlider((Rectangle){655, 70, 225, 40}, NULL, NULL,
+              synth->filter->adsr->attack, 0.0f, 2.0f);
     /* Decay */
-    GuiLabel((Rectangle){ 745, 120, 100, 20}, "Decay");
-    GuiSlider((Rectangle){ 655, 140, 225, 40 }, NULL, NULL, 
-            synth->filter->adsr->decay, 0.0f, 2.0f);
+    GuiLabel((Rectangle){745, 120, 100, 20}, "Decay");
+    GuiSlider((Rectangle){655, 140, 225, 40}, NULL, NULL,
+              synth->filter->adsr->decay, 0.0f, 2.0f);
     /* Sustain */
-    GuiLabel((Rectangle){ 1005, 50, 100, 20}, "Sustain");
-    GuiSlider((Rectangle){ 915, 70, 225, 40 }, NULL, NULL, 
-            synth->filter->adsr->sustain, 0.0f, 1.0f);
+    GuiLabel((Rectangle){1005, 50, 100, 20}, "Sustain");
+    GuiSlider((Rectangle){915, 70, 225, 40}, NULL, NULL,
+              synth->filter->adsr->sustain, 0.0f, 1.0f);
     /* Release */
-    GuiLabel((Rectangle){ 1005, 120, 100, 20}, "Release");
-    GuiSlider((Rectangle){ 915, 140, 225, 40 }, NULL, NULL, 
-            synth->filter->adsr->release, 0.0f, 1.0f);
+    GuiLabel((Rectangle){1005, 120, 100, 20}, "Release");
+    GuiSlider((Rectangle){915, 140, 225, 40}, NULL, NULL,
+              synth->filter->adsr->release, 0.0f, 1.0f);
 
     /* Oscillators waveforms */
-    GuiGroupBox((Rectangle){ 30, 230, WIDTH / 2 - 50, 160 }, "Oscillators");
+    GuiGroupBox((Rectangle){30, 230, WIDTH / 2 - 50, 160}, "Oscillators");
     /* Oscillator A */
     GuiLabel((Rectangle){80, 265, 110, 20}, "Oscillator A");
-    if (GuiDropdownBox((Rectangle){60, 285, 140, 40 }, 
-        "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth", 
-        wave_a, *ddm_a))
-            *ddm_a = !*ddm_a;
+    if (GuiDropdownBox((Rectangle){60, 285, 140, 40},
+                       "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
+                       wave_a, *ddm_a))
+        *ddm_a = !*ddm_a;
     /* Oscillator B */
     GuiLabel((Rectangle){250, 265, 110, 20}, "Oscillator B");
-    if (GuiDropdownBox((Rectangle){230, 285, 140, 40 }, 
-        "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth", 
-        wave_b, *ddm_b))
-            *ddm_b = !*ddm_b;
+    if (GuiDropdownBox((Rectangle){230, 285, 140, 40},
+                       "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
+                       wave_b, *ddm_b))
+        *ddm_b = !*ddm_b;
     /* Oscillator C */
     GuiLabel((Rectangle){420, 265, 110, 20}, "Oscillator C");
-    if (GuiDropdownBox((Rectangle){400, 285, 140, 40 }, 
-        "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth", 
-        wave_c, *ddm_c))
-            *ddm_c = !*ddm_c;
-    
+    if (GuiDropdownBox((Rectangle){400, 285, 140, 40},
+                       "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
+                       wave_c, *ddm_c))
+        *ddm_c = !*ddm_c;
+
     /* Synth parameters */
-    GuiGroupBox((Rectangle){ 625, 230, WIDTH / 2 - 50, 160 }, "Synth parameters");
+    GuiGroupBox((Rectangle){625, 230, WIDTH / 2 - 50, 160}, "Synth parameters");
     /* Filter cutoff */
-    GuiLabel((Rectangle){ 700, 240, 100, 20}, "Cutoff");
-    GuiSlider((Rectangle){ 645, 260, 170, 40 }, NULL, NULL, 
-            &synth->filter->cutoff, 0.0f, 1.0f);
+    GuiLabel((Rectangle){700, 240, 100, 20}, "Cutoff");
+    GuiSlider((Rectangle){645, 260, 170, 40}, NULL, NULL,
+              &synth->filter->cutoff, 0.0f, 1.0f);
     /* Synth detune effect */
-    GuiLabel((Rectangle){ 700, 310, 100, 20}, "Detune");
-    GuiSlider((Rectangle){ 645, 330, 170, 40 }, NULL, NULL, 
-            &synth->detune, 0.0f, 1.0f);
+    GuiLabel((Rectangle){700, 310, 100, 20}, "Detune");
+    GuiSlider((Rectangle){645, 330, 170, 40}, NULL, NULL,
+              &synth->detune, 0.0f, 1.0f);
     /* Amplification */
-    GuiLabel((Rectangle){ 910, 240, 100, 20}, "Amp");
-    GuiSlider((Rectangle){ 840, 260, 170, 40 }, NULL, NULL, 
-            &synth->amp, 0.0f, 1.0f);
+    GuiLabel((Rectangle){910, 240, 100, 20}, "Amp");
+    GuiSlider((Rectangle){840, 260, 170, 40}, NULL, NULL,
+              &synth->amp, 0.0f, 1.0f);
     /* Filter ADSR ON/OFF */
-    GuiCheckBox((Rectangle){840, 330, 40, 40}, "Filter ADSR", 
-            &synth->filter->env);
+    GuiCheckBox((Rectangle){840, 330, 40, 40}, "Filter ADSR",
+                &synth->filter->env);
 
     /* Saving preset */
-    if (GuiButton((Rectangle){ 1030, 240, 120, 40 }, "Save preset"))
+    if (GuiButton((Rectangle){1030, 240, 120, 40}, "Save preset"))
         *saving_preset = true;
 
     if (*saving_preset)
         save_preset(
-            synth, 
+            synth,
             attack, decay, sustain, release,
             wave_a, wave_b, wave_c,
             preset_filename, saving_preset);
-            
+
     /* Loading preset */
-    if (GuiButton((Rectangle){ 1030, 290, 120, 40 }, "Load preset"))
+    if (GuiButton((Rectangle){1030, 290, 120, 40}, "Load preset"))
         load_preset(
-            synth, 
+            synth,
             attack, decay, sustain, release,
             wave_a, wave_b, wave_c);
 
     /* Recording audio */
-    int record_button = GuiButton((Rectangle){ 1030, 340, 120, 40}, "Record"); 
+    int record_button = GuiButton((Rectangle){1030, 340, 120, 40}, "Record");
 
     if (record_button && !*recording)
         *saving_audio_file = true;
@@ -136,8 +134,8 @@ render_informations(
 
     if (*saving_audio_file)
     {
-        int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, 
-                "Audio file name :", "", "Start recording", audio_filename, 20, false);
+        int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100},
+                                  "Audio file name :", "", "Start recording", audio_filename, 20, false);
         if (res == 0)
             *saving_audio_file = false;
         else if (res == 1)
@@ -148,15 +146,13 @@ render_informations(
     }
 
     if (*recording)
-        DrawRectangleRounded((Rectangle){ 1155, 340, 5, 40 }, 0.2, 10, RED);
+        DrawRectangleRounded((Rectangle){1155, 340, 5, 40}, 0.2, 10, RED);
 }
 
-
 /* Renders the waveform generated by the render_synth function */
-void 
-render_waveform(short *buffer)
+void render_waveform(short *buffer)
 {
-    GuiGroupBox((Rectangle){ 30, 420, WIDTH - 55, 160}, "Waveform");
+    GuiGroupBox((Rectangle){30, 420, WIDTH - 55, 160}, "Waveform");
 
     int mid_y = HEIGHT / 4 + 35;
     int y = HEIGHT / 3 + mid_y;
@@ -172,29 +168,31 @@ render_waveform(short *buffer)
         int y2 = y - ((buffer[i + step] * mid_y) / 32768);
 
         /* Preventing going past the GuiGroupBox */
-        if (y1 < 420) y1 = 420;
-        if (y2 < 420) y2 = 420;
-        if (y1 > 580) y1 = 580;
-        if (y2 > 580) y2 = 580;
+        if (y1 < 420)
+            y1 = 420;
+        if (y2 < 420)
+            y2 = 420;
+        if (y1 > 580)
+            y1 = 580;
+        if (y2 > 580)
+            y2 = 580;
 
         DrawLine(x1, y1, x2, y2, BLACK);
     }
 }
 
 /* Render the white keys from the MIDI piano visualizer */
-void 
-render_white_keys()
+void render_white_keys()
 {
     for (int i = 0; i < WHITE_KEYS; i++)
     {
-        DrawRectangleLines(i * WHITE_KEYS_WIDTH, HEIGHT - WHITE_KEYS_HEIGHT, 
-            WHITE_KEYS_WIDTH + 1, WHITE_KEYS_HEIGHT, BLACK);   
+        DrawRectangleLines(i * WHITE_KEYS_WIDTH, HEIGHT - WHITE_KEYS_HEIGHT,
+                           WHITE_KEYS_WIDTH + 1, WHITE_KEYS_HEIGHT, BLACK);
     }
 }
 
 /* Render the black keys from the MIDI piano visualizer */
-void 
-render_black_keys()
+void render_black_keys()
 {
     char black_keys_pattern[] = {1, 1, 0, 1, 1, 1, 0, 0};
     int white_key_index = 0;
@@ -206,7 +204,7 @@ render_black_keys()
             {
                 int x = (white_key_index * WHITE_KEYS_WIDTH) + WHITE_KEYS_WIDTH - (BLACK_KEYS_WIDTH / 2);
                 DrawRectangle(x, HEIGHT - WHITE_KEYS_HEIGHT,
-                                BLACK_KEYS_WIDTH, BLACK_KEYS_HEIGHT, BLACK);
+                              BLACK_KEYS_WIDTH, BLACK_KEYS_HEIGHT, BLACK);
             }
             white_key_index++;
             if (white_key_index >= WHITE_KEYS)
@@ -218,8 +216,7 @@ render_black_keys()
 }
 
 /* Renders given note into a pressed key in the MIDI piano visualizer */
-void 
-render_key(int midi_note)
+void render_key(int midi_note)
 {
     int width = 0, height = 0, x = 0, y = 0, is_black = 0;
     get_key_position(midi_note, &x, &y, &width, &height, &is_black);
@@ -227,13 +224,13 @@ render_key(int midi_note)
     DrawRectangle(x, y, width, height, (Color){151, 232, 255, 255});
     DrawRectangleLines(x, y, width, height, BLACK);
     /* Avoid double thick line when pressing a white key */
-    if (!is_black) DrawLine(x + width, y, x + width, y + height - 1, (Color){151, 232, 255, 255});
+    if (!is_black)
+        DrawLine(x + width, y, x + width, y + height - 1, (Color){151, 232, 255, 255});
 }
 
 /* Outputs a given MIDI note rectangle parameters (x, y, width and height) */
-void 
-get_key_position(int midi_note, int *x, int *y, 
-                int *width, int *height, int *is_black)
+void get_key_position(int midi_note, int *x, int *y,
+                      int *width, int *height, int *is_black)
 {
     int note_in_octave = midi_note % 12;
     int octave = midi_note / 12;
@@ -263,8 +260,7 @@ get_key_position(int midi_note, int *x, int *y,
 }
 
 /* Returns if a MIDI note is a assigned to a black key or not */
-int 
-is_black_key(int midi_note)
+int is_black_key(int midi_note)
 {
     int note = midi_note % 12;
     return (note == 1 || note == 3 || note == 6 || note == 8 || note == 10);

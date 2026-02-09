@@ -33,7 +33,6 @@ int main(int argc, char **argv)
     snd_pcm_t *handle = NULL;
     snd_rawmidi_t *midi_in = NULL;
 
-
     char midi_device[256];
     int midi_input = 0;
     int keyboard_input = 0;
@@ -93,21 +92,19 @@ int main(int argc, char **argv)
     float filter_release = 0.2;
 
     adsr_t filter_adsr =
-    {
-        .attack = &filter_attack,
-        .decay = &filter_decay,
-        .sustain = &filter_sustain,
-        .release = &filter_release
-    };
+        {
+            .attack = &filter_attack,
+            .decay = &filter_decay,
+            .sustain = &filter_sustain,
+            .release = &filter_release};
 
     lp_filter_t filter =
-    {
-        .cutoff = 0.5,
-        .prev_input = 0.0,
-        .prev_output = 0.0,
-        .adsr = &filter_adsr,
-        .env = false
-    };
+        {
+            .cutoff = 0.5,
+            .prev_input = 0.0,
+            .prev_output = 0.0,
+            .adsr = &filter_adsr,
+            .env = false};
 
     synth_t synth =
         {
@@ -205,11 +202,11 @@ int main(int argc, char **argv)
     bool ddm_a = false, ddm_b = false, ddm_c = false, saving_preset = false, recording = false, saving_audio_file = false;
     char filename[1024] = "\0";
     unsigned int count = 0;
-    
+
     InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
     Font annotation = LoadFont("Regular.ttf");
     GuiSetFont(annotation);
-    GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * 0.5); 
+    GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize * 0.5);
 
     while (!WindowShouldClose())
     {
@@ -252,8 +249,8 @@ int main(int argc, char **argv)
         }
         else if (fwav != NULL && recording == false)
         {
-            header.sub2_size = FRAMES * count * (unsigned int) header.num_channels * (unsigned int) header.bits_per_sample / 8;
-            header.chunk_size = (unsigned int) header.sub2_size + 36;
+            header.sub2_size = FRAMES * count * (unsigned int)header.num_channels * (unsigned int)header.bits_per_sample / 8;
+            header.chunk_size = (unsigned int)header.sub2_size + 36;
             fseek(fwav, 0, SEEK_SET);
             fwrite(&header, 1, sizeof(header), fwav);
             close_wav_file(fwav);
@@ -280,7 +277,7 @@ int main(int argc, char **argv)
             for (int v = 0; v < VOICES; v++)
                 if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
                     render_key(synth.voices[v].note);
-        EndDrawing();        
+        EndDrawing();
     }
 
     CloseWindow();
@@ -290,8 +287,8 @@ int main(int argc, char **argv)
 
     if (fwav != NULL)
     {
-        header.sub2_size = FRAMES * count * (unsigned int) header.num_channels * (unsigned int) header.bits_per_sample / 8;
-        header.chunk_size = (unsigned int) header.sub2_size + 36;
+        header.sub2_size = FRAMES * count * (unsigned int)header.num_channels * (unsigned int)header.bits_per_sample / 8;
+        header.chunk_size = (unsigned int)header.sub2_size + 36;
         fseek(fwav, 0, SEEK_SET);
         fwrite(&header, 1, sizeof(header), fwav);
         close_wav_file(fwav);
