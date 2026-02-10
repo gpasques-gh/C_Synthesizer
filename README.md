@@ -31,9 +31,12 @@ The GUI shows all of the informations about the synth and let the user configure
 The MIDI input should work with all USB MIDI keyboards, to use the synth with your keyboard just follow these two steps :
 - Using the `amidi -l` command, get your MIDI device hardware id (should look something similar to `hw:1,0,0`)
 - Then run the synth : `./bin/synth -midi <hardware id>`
+- The MIDI input was only tested with an Arturia Keylab Essential 61, the keyboard itself should work, but knobs CC values may be off for your keyboard, you can change them in midi.h.  
 
 # Keyboard input ⌨️
 You can set the keyboard layout to be either QWERTY or  AZERTY.  
+To run the synth with keyboard input, the layout then defaults to QWERTY : `./bin/synth -kb`  
+To run the synth with keyboard input and a specific keyboard layout : `./bin/synth -kb <QWERTY/AZERTY>`   
 The keyboard simulates a "real" piano keyboard, starting from `a` (`q` in AZERTY) to `j`.  
 The up arrow key move the keys up an octave and the down arrow key move the keys down an octave.  
 
@@ -45,13 +48,10 @@ raygui
 zenity  
 libxml2
 
-# Compile and run 🛠️
+# Compilation 🛠️
 To compile the projet : `make`  
-To run the synth with keyboard input, the layout then defaults to QWERTY : `./bin/synth -kb`  
-To run the synth with keyboard input and a specific keyboard layout : `./bin/synth -kb <QWERTY/AZERTY>`  
-To run the synth with MIDI input : `./bin/synth -midi midi device hardware id>` (you can get this id by using the amidi -l command)
-The MIDI input was only tested with an Arturia Keylab Essential 61, the keyboard itself should work, but knobs CC values may be off for your keyboard, you can change them in midi.h. 
+Create the `presets/` and `audio/` directories in the base project folder in order to use the presets saving and audio recording functionnalities.
   
 # Contribute & feedback
 Don't hesitate to give feedback and contribute to the project!  
-And if you encounter any bug (and you probably will), please report them to me if you have the time!
+If you encounter any bug (and you most probably will), please report them to me if you have the time!
