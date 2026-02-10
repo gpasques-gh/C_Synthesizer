@@ -12,6 +12,7 @@
 #include "midi.h"
 #include "keyboard.h"
 #include "record.h"
+#include "effects.h"
 
 /* Prints the usage of the CLI arguments into the error output */
 void usage()
@@ -256,6 +257,7 @@ int main(int argc, char **argv)
 
         /* Render the synth into the sound buffer*/
         render_synth(&synth, buffer);
+        distortion(buffer, 0.6, true);
 
         /* Write the buffer to the sound card */
         int err = snd_pcm_writei(handle, buffer, FRAMES);
