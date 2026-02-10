@@ -79,6 +79,9 @@
 #define FRAMES 1024
 #define LATENCY 40000
 #define MAX_SAMPLES 512000
+#define MONO 1
+#define STEREO 2
+#define BITS 16
 
 /* SDL interface */
 #define WIDTH 1196

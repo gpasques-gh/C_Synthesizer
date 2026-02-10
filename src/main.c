@@ -119,6 +119,7 @@ int main(int argc, char **argv)
             .detune = 0.0,
             .filter = &filter};
 
+    /* Error while allocating the synthesizer voices */
     if (synth.voices == NULL)
     {
         fprintf(stderr, "memory allocation failed.\n");
@@ -189,7 +190,7 @@ int main(int argc, char **argv)
         handle,
         SND_PCM_FORMAT_S16_LE,
         SND_PCM_ACCESS_RW_INTERLEAVED,
-        1, RATE, 1, LATENCY);
+        MONO, RATE, 1, LATENCY);
 
     if (params_err < 0)
     {
@@ -221,11 +222,14 @@ int main(int argc, char **argv)
     FILE *fwav = NULL;
     wav_header_t header;
     unsigned int count = 0;
+    bool recording = false;
 
     /* GUI rendering and interacting related variables */
+    /* Dropdown menus booleans */
     bool ddm_a = false, ddm_b = false, ddm_c = false;
-    bool saving_preset = false, recording = false, saving_audio_file = false;
-    char filename[1024] = "\0";
+    /* Saving name booleans to avoid triggering notes with keyboard */
+    bool saving_preset = false, saving_audio_file = false;
+    char preset_filename[1024] = "\0";
 
     /* Initialize raylib window and font */
     InitWindow(WIDTH, HEIGHT, "ALSA & raygui synthesizer");
@@ -307,7 +311,7 @@ int main(int argc, char **argv)
                 &attack, &decay, &sustain, &release,
                 &osc_a, &osc_b, &osc_c,
                 &ddm_a, &ddm_b, &ddm_c,
-                filename, audio_filename,
+                preset_filename, audio_filename,
                 &saving_preset, &saving_audio_file, &recording);
             /* We render the white keys and the pressed white keys before the black keys 
             so that the black keys correctly overlap with the white keys */
@@ -340,7 +344,7 @@ int main(int argc, char **argv)
         close_wav_file(fwav);
     }
     
-/* Cleanup gotos*/
+/* Cleanup gotos */
 cleanup_alsa:
     if (handle)
     {

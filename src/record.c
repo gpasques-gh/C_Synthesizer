@@ -25,8 +25,8 @@ int init_wav_header(wav_header_t *header)
     header->sub2_id[2] = 't';
     header->sub2_id[3] = 'a';
 
-    header->num_channels = 1; /* 1 channel for mono, 2 for stereo */
-    header->bits_per_sample = 16;
+    header->num_channels = MONO; /* 1 for mono, 2 for stereo */
+    header->bits_per_sample = BITS;
     /* Maximum data size for long recording, the size is updated when the recording is finished */
     header->sub2_size = 300 * MAX_SAMPLES * (unsigned int) header->num_channels * (unsigned int) header->bits_per_sample / 8;
     header->chunk_size = (unsigned int) header->sub2_size + 36;
