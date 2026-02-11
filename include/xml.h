@@ -21,7 +21,9 @@ int save_preset(
     float *attack, float *decay,
     float *sustain, float *release,
     int *wave_a, int *wave_b, int *wave_c,
-    char *preset_filename, bool *saving_preset);
+    char *preset_filename, bool *saving_preset, 
+    bool distortion, bool overdrive, 
+    float distortion_amount);
 
 /*
  * Load a preset from an XML file to the application :
@@ -36,7 +38,9 @@ int load_preset(
     synth_t *synth,
     float *attack, float *decay,
     float *sustain, float *release,
-    int *wave_a, int *wave_b, int *wave_c);
+    int *wave_a, int *wave_b, int *wave_c, 
+    bool *distortion, bool *overdrive, 
+    float *distortion_amount);
 
 /* Parse an ADSR XML Node whether it's basic ADSR of filter ADSR */
 int parse_adsr(

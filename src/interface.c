@@ -101,13 +101,13 @@ void render_informations(
     GuiSlider((Rectangle){640, 330, 225, 40}, NULL, NULL,
               &synth->filter->cutoff, 0.0f, 2.0f);
     if (synth->lfo->mod_param == LFO_CUTOFF)
-        DrawRectangle(640, 330, 225 * synth->filter->lfo_cutoff, 40, GRAY);
+        DrawRectangle(640, 330, 225 * (synth->filter->lfo_cutoff / 2), 40, GRAY);
     /* Detune effect */
     GuiLabel((Rectangle){990, 240, 100, 20}, "Detune");
     GuiSlider((Rectangle){900, 260, 225, 40}, NULL, NULL,
               &synth->detune, 0.0f, 1.0f);
     if (synth->lfo->mod_param == LFO_DETUNE)
-        DrawRectangle(630, 260, 225 * synth->lfo_detune, 40, GRAY);
+        DrawRectangle(900, 260, 225 * synth->lfo_detune, 40, GRAY);
     /* Filter ADSR ON/OFF */
     GuiCheckBox((Rectangle){900, 330, 40, 40}, "Filter ADSR",
                 &synth->filter->env);
@@ -124,14 +124,18 @@ void render_informations(
             synth,
             attack, decay, sustain, release,
             wave_a, wave_b, wave_c,
-            preset_filename, saving_preset);
+            preset_filename, saving_preset, 
+            *distortion, *overdrive,
+            *distortion_amount);
 
     /* Loading preset */
     if (GuiButton((Rectangle){1210, 290, 120, 40}, "Load preset"))
         load_preset(
             synth,
             attack, decay, sustain, release,
-            wave_a, wave_b, wave_c);
+            wave_a, wave_b, wave_c,
+            distortion, overdrive,
+            distortion_amount);
 
     /* Recording audio */
     int record_button = GuiButton((Rectangle){1210, 340, 120, 40}, "Record");
@@ -156,8 +160,6 @@ void render_informations(
 
     if (*recording)
         DrawRectangleRounded((Rectangle){1340, 340, 5, 40}, 0.2, 10, RED);
-
-    
     
     /* Effects */
     GuiGroupBox((Rectangle){1190, 40, 554, 160}, "Effects");

@@ -17,7 +17,9 @@ int save_preset(
     float *attack, float *decay,
     float *sustain, float *release,
     int *wave_a, int *wave_b, int *wave_c,
-    char *preset_filename, bool *saving_preset)
+    char *preset_filename, bool *saving_preset,
+    bool distortion, bool overdrive, 
+    float distortion_amount)
 {
 
     char filename[1024] = "presets/";
@@ -47,6 +49,8 @@ int save_preset(
         xmlNodePtr filter_adsr_node = NULL;
         xmlNodePtr osc_node = NULL;
         xmlNodePtr effects_node = NULL;
+        xmlNodePtr lfo_node = NULL;
+        xmlNodePtr distortion_node = NULL;
 
         LIBXML_TEST_VERSION
 
@@ -115,6 +119,30 @@ int save_preset(
         /* Amplification */
         snprintf(text_element, 1024, "%.2f", synth->amp);
         xmlNewChild(effects_node, NULL, BAD_CAST "amp", BAD_CAST text_element);
+        
+        /* LFO*/
+        lfo_node = xmlNewChild(effects_node, NULL, BAD_CAST "lfo", NULL);
+        /* LFO waveform */
+        snprintf(text_element, 1024, "%d", *synth->lfo->osc->wave);
+        xmlNewChild(lfo_node, NULL, BAD_CAST "lfo_wave", BAD_CAST text_element);
+        /* LFO frequency */
+        snprintf(text_element, 1024, "%.2f", synth->lfo->osc->freq);
+        xmlNewChild(lfo_node, NULL, BAD_CAST "lfo_freq", BAD_CAST text_element);
+        /* LFO parameter */
+        snprintf(text_element, 1024, "%d", synth->lfo->mod_param);
+        xmlNewChild(lfo_node, NULL, BAD_CAST "lfo_param", BAD_CAST text_element);
+
+        /* Distortion */
+        distortion_node = xmlNewChild(effects_node, NULL, BAD_CAST "distortion", NULL);
+        /* Distortion ON/OFF */
+        snprintf(text_element, 1024, "%d", distortion);
+        xmlNewChild(distortion_node, NULL, BAD_CAST "dist_on_off", BAD_CAST text_element);
+        /* Overdrive ON/OFF */
+        snprintf(text_element, 1024, "%d", overdrive);
+        xmlNewChild(distortion_node, NULL, BAD_CAST "od_on_off", BAD_CAST text_element);
+        /* Distortion amount */
+        snprintf(text_element, 1024, "%.2f", distortion_amount);
+        xmlNewChild(distortion_node, NULL, BAD_CAST "amount", BAD_CAST text_element);
 
         /* Saving the XML document into the file */
         xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
@@ -138,7 +166,9 @@ int load_preset(
     synth_t *synth,
     float *attack, float *decay,
     float *sustain, float *release,
-    int *wave_a, int *wave_b, int *wave_c)
+    int *wave_a, int *wave_b, int *wave_c,
+    bool *distortion, bool *overdrive, 
+    float *distortion_amount)
 {
     char filename[1024];
     FILE *f = popen("zenity --file-selection --filename '/home/germain/C_Synthesizer/presets/' --file-filter '*.xml'", "r");
@@ -335,6 +365,132 @@ int load_preset(
                     else if (amp_float < 0.0)
                         amp_float = 0.0;
                     synth->amp = amp_float;
+                }
+                /* LFO */
+                else if (child->type == XML_ELEMENT_NODE &&
+                        xmlStrcmp(child->name, BAD_CAST "lfo") == 0)
+                {
+                    xmlNode *lfo_child = NULL;
+                    
+                    for (lfo_child = child->children; lfo_child; lfo_child = lfo_child->next)
+                    {
+                        /* LFO waveform*/
+                        if (lfo_child->type == XML_ELEMENT_NODE &&
+                            xmlStrcmp(lfo_child->name, BAD_CAST "lfo_wave") == 0)
+                        {
+                            xmlChar *lfo_wave = xmlNodeGetContent(lfo_child);
+                            char *end_ptr = NULL;
+                            int lfo_wave_int = strtol((const char *)lfo_wave, &end_ptr, 10);
+                            if (end_ptr == (char *)lfo_wave)
+                            {
+                                fprintf(stderr, "bad lfo waveform value.\n");
+                                return 1;
+                            }
+                            if (lfo_wave_int > SAWTOOTH_WAVE)
+                                lfo_wave_int = SAWTOOTH_WAVE;
+                            else if (lfo_wave_int < SINE_WAVE)
+                                lfo_wave_int = SINE_WAVE;
+                            *synth->lfo->osc->wave = lfo_wave_int;
+                        }
+                        else if (lfo_child->type == XML_ELEMENT_NODE &&
+                                xmlStrcmp(lfo_child->name, BAD_CAST "lfo_freq") == 0)
+                        {
+                            xmlChar *lfo_freq = xmlNodeGetContent(lfo_child);
+                            char *end_ptr = NULL;
+                            float lfo_freq_float = strtof((const char *)lfo_freq, &end_ptr);
+                            if (end_ptr == (char *)lfo_freq)
+                            {
+                                fprintf(stderr, "bad lfo frequency value.\n");
+                                return 1;
+                            }
+                            if (lfo_freq_float > 1.0)
+                                lfo_freq_float = 1.0;
+                            else if (lfo_freq_float < 0.0)
+                                lfo_freq_float = 0.0;
+                            synth->lfo->osc->freq = lfo_freq_float;
+                        }
+                        else if (lfo_child->type == XML_ELEMENT_NODE &&
+                                xmlStrcmp(lfo_child->name, BAD_CAST "lfo_param") == 0)
+                        {
+                            xmlChar *lfo_param = xmlNodeGetContent(lfo_child);
+                            char *end_ptr = NULL;
+                            int lfo_param_int = strtol((const char *)lfo_param, &end_ptr, 10);
+                            if (end_ptr == (char *)lfo_param)
+                            {
+                                fprintf(stderr, "bad lfo param value.\n");
+                                return 1;
+                            }
+                            if (lfo_param_int > LFO_AMP)
+                                lfo_param_int = LFO_AMP;
+                            else if (lfo_param_int < LFO_OFF)
+                                lfo_param_int = LFO_OFF;
+                            synth->lfo->mod_param = lfo_param_int;
+                        }
+                    }
+                }
+                /* Distortion */
+                else if (child->type == XML_ELEMENT_NODE &&
+                        xmlStrcmp(child->name, BAD_CAST "distortion") == 0)
+                {
+                    xmlNode *dist_child = NULL;
+
+                    for (dist_child = child->children; dist_child; dist_child = dist_child->next)
+                    {
+                        /* Distortion ON/OFF */
+                        if (dist_child->type == XML_ELEMENT_NODE &&
+                            xmlStrcmp(dist_child->name, BAD_CAST "dist_on_off") == 0)
+                        {
+                            xmlChar *dist_on_off = xmlNodeGetContent(dist_child);
+                            char *end_ptr = NULL;
+                            int dist_bool = strtol((const char *)dist_on_off, &end_ptr, 10);
+                            if (end_ptr == (char *)dist_on_off)
+                            {
+                                fprintf(stderr, "bad distortion on/off value.\n");
+                                return 1;
+                            }
+                            if (dist_bool > 1)
+                                dist_bool = 1;
+                            else if (dist_bool < 0)
+                                dist_bool = 0;
+                            *distortion = dist_bool;
+                        }
+                        /* Overdrive ON/OFF */
+                        else if (dist_child->type == XML_ELEMENT_NODE &&
+                            xmlStrcmp(dist_child->name, BAD_CAST "od_on_off") == 0)
+                        {
+                            xmlChar *od_on_off = xmlNodeGetContent(dist_child);
+                            char *end_ptr = NULL;
+                            int od_bool = strtol((const char *)od_on_off, &end_ptr, 10);
+                            if (end_ptr == (char *)od_on_off)
+                            {
+                                fprintf(stderr, "bad overdrive on/off value.\n");
+                                return 1;
+                            }
+                            if (od_bool > 1)
+                                od_bool = 1;
+                            else if (od_bool < 0)
+                                od_bool = 0;
+                            *overdrive = od_bool;
+                        }
+                        /* Distortion amount */
+                        else if (dist_child->type == XML_ELEMENT_NODE &&
+                            xmlStrcmp(dist_child->name, BAD_CAST "amount") == 0)
+                        {
+                            xmlChar *dist_amount = xmlNodeGetContent(dist_child);
+                            char *end_ptr = NULL;
+                            float dist_amount_float = strtof((const char *)dist_amount, &end_ptr);
+                            if (end_ptr == (char *)dist_amount)
+                            {
+                                fprintf(stderr, "bad distortion amount value.\n");
+                                return 1;
+                            }
+                            if (dist_amount_float > 1.0)
+                                dist_amount_float = 1.0;
+                            else if (dist_amount_float < 0.0)
+                                dist_amount_float = 0.0;
+                            *distortion_amount = dist_amount_float;
+                        }
+                    }
                 }
             }
         }
