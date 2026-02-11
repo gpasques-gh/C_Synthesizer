@@ -22,12 +22,15 @@ void render_informations(
     int *wave_a, int *wave_b, int *wave_c,
     bool *ddm_a, bool *ddm_b, bool *ddm_c,
     char *preset_filename, char *audio_filename,
-    bool *saving_preset, bool *saving_audio_file, bool *recording)
+    bool *saving_preset, bool *saving_audio_file, bool *recording,
+    bool *lfo_wave, bool *lfo_params,
+    bool *distortion, bool *overdrive,
+    float *distortion_amount)
 {
     GuiLabel((Rectangle){WIDTH / 2 - 115, 5, 230, 20}, "ALSA & raygui Synthesizer");
 
     /* ADSR envelope sliders */
-    GuiGroupBox((Rectangle){30, 40, WIDTH / 2 - 50, 160}, "ADSR Envelope");
+    GuiGroupBox((Rectangle){30, 40, 550, 160}, "ADSR Envelope");
     /* Attack */
     GuiLabel((Rectangle){150, 50, 100, 20}, "Attack");
     GuiSlider((Rectangle){60, 70, 225, 40}, NULL, NULL,
@@ -46,26 +49,26 @@ void render_informations(
               release, 0.0f, 1.0f);
 
     /* Filter ADSR envelope sliders */
-    GuiGroupBox((Rectangle){625, 40, WIDTH / 2 - 50, 160}, "Filter ADSR Envelope");
+    GuiGroupBox((Rectangle){610, 40, 550, 160}, "Filter ADSR Envelope");
     /* Attack */
-    GuiLabel((Rectangle){745, 50, 100, 20}, "Attack");
-    GuiSlider((Rectangle){655, 70, 225, 40}, NULL, NULL,
+    GuiLabel((Rectangle){730, 50, 100, 20}, "Attack");
+    GuiSlider((Rectangle){640, 70, 225, 40}, NULL, NULL,
               synth->filter->adsr->attack, 0.0f, 2.0f);
     /* Decay */
-    GuiLabel((Rectangle){745, 120, 100, 20}, "Decay");
-    GuiSlider((Rectangle){655, 140, 225, 40}, NULL, NULL,
+    GuiLabel((Rectangle){730, 120, 100, 20}, "Decay");
+    GuiSlider((Rectangle){640, 140, 225, 40}, NULL, NULL,
               synth->filter->adsr->decay, 0.0f, 2.0f);
     /* Sustain */
-    GuiLabel((Rectangle){1005, 50, 100, 20}, "Sustain");
-    GuiSlider((Rectangle){915, 70, 225, 40}, NULL, NULL,
+    GuiLabel((Rectangle){990, 50, 100, 20}, "Sustain");
+    GuiSlider((Rectangle){900, 70, 225, 40}, NULL, NULL,
               synth->filter->adsr->sustain, 0.0f, 1.0f);
     /* Release */
-    GuiLabel((Rectangle){1005, 120, 100, 20}, "Release");
-    GuiSlider((Rectangle){915, 140, 225, 40}, NULL, NULL,
+    GuiLabel((Rectangle){990, 120, 100, 20}, "Release");
+    GuiSlider((Rectangle){900, 140, 225, 40}, NULL, NULL,
               synth->filter->adsr->release, 0.0f, 1.0f);
 
     /* Oscillators waveforms */
-    GuiGroupBox((Rectangle){30, 230, WIDTH / 2 - 50, 160}, "Oscillators");
+    GuiGroupBox((Rectangle){30, 230, 550, 160}, "Oscillators");
     /* Oscillator A */
     GuiLabel((Rectangle){80, 265, 110, 20}, "Oscillator A");
     if (GuiDropdownBox((Rectangle){60, 285, 140, 40},
@@ -86,32 +89,34 @@ void render_informations(
         *ddm_c = !*ddm_c;
 
     /* Synth parameters */
-    GuiGroupBox((Rectangle){625, 230, WIDTH / 2 - 50, 160}, "Synth parameters");
-    /* Filter cutoff */
-    GuiLabel((Rectangle){700, 240, 100, 20}, "Cutoff");
-    
-    /* Render the env cutoff if it's not equal to the filter cutoff */
-    if (synth->filter->env_cutoff == synth->filter->cutoff)
-        GuiSliderBar((Rectangle){645, 260, 170, 40}, NULL, NULL,
-              &synth->filter->cutoff, 0.0f, 1.0f);
-    else
-        GuiSliderBar((Rectangle){645, 260, 170, 40}, NULL, NULL,
-            &synth->filter->env_cutoff, 0.0f, 1.0f);
-
-    /* Synth detune effect */
-    GuiLabel((Rectangle){700, 310, 100, 20}, "Detune");
-    GuiSlider((Rectangle){645, 330, 170, 40}, NULL, NULL,
-              &synth->detune, 0.0f, 1.0f);
+    GuiGroupBox((Rectangle){610, 230, 550, 160}, "Synth parameters");
     /* Amplification */
-    GuiLabel((Rectangle){910, 240, 100, 20}, "Amp");
-    GuiSlider((Rectangle){840, 260, 170, 40}, NULL, NULL,
+    GuiLabel((Rectangle){730, 240, 100, 20}, "Amp");
+    GuiSlider((Rectangle){640, 260, 225, 40}, NULL, NULL,
               &synth->amp, 0.0f, 1.0f);
+    if (synth->lfo->mod_param == LFO_AMP)
+        DrawRectangle(640, 260, 225 * synth->lfo_amp, 40, GRAY);
+    /* Filter cutoff */
+    GuiLabel((Rectangle){730, 310, 100, 20}, "Cutoff");
+    GuiSlider((Rectangle){640, 330, 225, 40}, NULL, NULL,
+              &synth->filter->cutoff, 0.0f, 2.0f);
+    if (synth->lfo->mod_param == LFO_CUTOFF)
+        DrawRectangle(640, 330, 225 * synth->filter->lfo_cutoff, 40, GRAY);
+    /* Detune effect */
+    GuiLabel((Rectangle){990, 240, 100, 20}, "Detune");
+    GuiSlider((Rectangle){900, 260, 225, 40}, NULL, NULL,
+              &synth->detune, 0.0f, 1.0f);
+    if (synth->lfo->mod_param == LFO_DETUNE)
+        DrawRectangle(630, 260, 225 * synth->lfo_detune, 40, GRAY);
     /* Filter ADSR ON/OFF */
-    GuiCheckBox((Rectangle){840, 330, 40, 40}, "Filter ADSR",
+    GuiCheckBox((Rectangle){900, 330, 40, 40}, "Filter ADSR",
                 &synth->filter->env);
+    
+    /* Options */
+    GuiGroupBox((Rectangle){1190, 230, 554, 160}, "Options");
 
     /* Saving preset */
-    if (GuiButton((Rectangle){1030, 240, 120, 40}, "Save preset"))
+    if (GuiButton((Rectangle){1210, 240, 120, 40}, "Save preset"))
         *saving_preset = true;
 
     if (*saving_preset)
@@ -122,14 +127,14 @@ void render_informations(
             preset_filename, saving_preset);
 
     /* Loading preset */
-    if (GuiButton((Rectangle){1030, 290, 120, 40}, "Load preset"))
+    if (GuiButton((Rectangle){1210, 290, 120, 40}, "Load preset"))
         load_preset(
             synth,
             attack, decay, sustain, release,
             wave_a, wave_b, wave_c);
 
     /* Recording audio */
-    int record_button = GuiButton((Rectangle){1030, 340, 120, 40}, "Record");
+    int record_button = GuiButton((Rectangle){1210, 340, 120, 40}, "Record");
 
     if (record_button && !*recording)
         *saving_audio_file = true;
@@ -150,7 +155,37 @@ void render_informations(
     }
 
     if (*recording)
-        DrawRectangleRounded((Rectangle){1155, 340, 5, 40}, 0.2, 10, RED);
+        DrawRectangleRounded((Rectangle){1340, 340, 5, 40}, 0.2, 10, RED);
+
+    
+    
+    /* Effects */
+    GuiGroupBox((Rectangle){1190, 40, 554, 160}, "Effects");
+    /* LFO frequency */
+    GuiLabel((Rectangle){1210 + 265 / 2 - 120 / 2, 120, 120, 20}, "LFO frequency");
+    GuiSlider((Rectangle){1210, 140, 265, 40}, NULL, NULL,
+              &synth->lfo->osc->freq, 0.0f, 1.0f);
+    /* LFO waveform */
+    GuiLabel((Rectangle){1210 + 130 / 2 - 80 / 2, 50, 80, 20}, "LFO wave");
+    if (GuiDropdownBox((Rectangle){1210, 70, 130, 40},
+                       "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
+                       synth->lfo->osc->wave, *lfo_wave))
+        *lfo_wave = !*lfo_wave;
+    /* LFO modulated parameter */
+    GuiLabel((Rectangle){1345 + 130 / 2 - 100 / 2, 50, 100, 20}, "LFO param");
+    if (GuiDropdownBox((Rectangle){1345, 70, 130, 40},
+                       "#01#Off;#02#Cutoff;#03#Detune;#04#Amp",
+                       &synth->lfo->mod_param, *lfo_params))
+        *lfo_params = !*lfo_params;
+
+    /* Distortion */
+    GuiLabel((Rectangle){1540 - 25, 50, 100, 20}, "Distortion");
+    GuiCheckBox((Rectangle){1540, 70, 40, 40}, NULL, distortion);
+    GuiLabel((Rectangle){1650 - 25, 50, 100, 20}, "Overdrive");
+    GuiCheckBox((Rectangle){1650, 70, 40, 40}, NULL, overdrive);
+    GuiLabel((Rectangle){1500 + 225 / 2 - 160 / 2, 120, 160, 20}, "Distortion amount");
+    GuiSlider((Rectangle){1500, 140, 225, 40}, NULL, NULL,
+              distortion_amount, 0.0f, 1.0f);
 }
 
 /* Renders the waveform generated by the render_synth function */

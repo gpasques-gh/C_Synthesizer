@@ -34,14 +34,20 @@ typedef struct
  */
 typedef struct
 {
-    double freq, phase;
+    float freq, phase;
     int *wave;
 } osc_t;
+
+typedef struct 
+{
+    osc_t *osc;
+    int mod_param;
+} lfo_t;
 
 /* Low-pass filter structure */
 typedef struct
 {
-    float prev_input, prev_output, cutoff, env_cutoff;
+    float prev_input, prev_output, cutoff, env_cutoff, lfo_cutoff;
     adsr_t *adsr;
     bool env;
 } lp_filter_t;
@@ -70,9 +76,11 @@ typedef struct
 {
     voice_t *voices;
     lp_filter_t *filter;
-    osc_t *lfo;
+    lfo_t *lfo;
     float detune;
+    float lfo_detune;
     float amp;
+    float lfo_amp;
 } synth_t;
 
 /*

@@ -87,7 +87,7 @@
 #define BITS 16
 
 /* SDL interface */
-#define WIDTH 1197
+#define WIDTH 1769
 #define HEIGHT 800
 #define TITLE "ALSA & SDL Synthesizer"
 
@@ -98,5 +98,11 @@
 #define WHITE_KEYS_HEIGHT HEIGHT / 4
 #define BLACK_KEYS_WIDTH WHITE_KEYS_WIDTH / 2
 #define BLACK_KEYS_HEIGHT (WHITE_KEYS_HEIGHT * 2) / 3
+
+/* LFO modulated parameters */
+#define LFO_OFF 0
+#define LFO_CUTOFF 1
+#define LFO_DETUNE 2
+#define LFO_AMP 3
 
 #endif

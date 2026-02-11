@@ -83,6 +83,7 @@ int main(int argc, char **argv)
 
     /* Oscillators waveforms */
     int osc_a = SINE_WAVE, osc_b = SINE_WAVE, osc_c = SINE_WAVE;
+    int osc_lfo = SINE_WAVE;
 
     /* Synthesizer ADSR envelope parameters*/
     float attack = 0.2;
@@ -113,12 +114,17 @@ int main(int argc, char **argv)
             .adsr = &filter_adsr,
             .env = false};
 
-    osc_t lfo =
+    /* Initialize the LFO */
+    osc_t lfo_osc =
         {
             .freq = 0.5,
             .phase = 0.0,
-            .wave = SINE_WAVE};
-
+            .wave = &osc_lfo};
+    lfo_t lfo = 
+        {
+            .osc = &lfo_osc,
+            .mod_param = LFO_OFF};
+    
     /* Initialize the synthesizer */
     synth_t synth =
         {
@@ -234,10 +240,17 @@ int main(int argc, char **argv)
     bool recording = false;
 
     /* GUI rendering and interacting related variables */
-    /* Dropdown menus booleans */
+    /* Oscillators dropdown menus booleans */
     bool ddm_a = false, ddm_b = false, ddm_c = false;
     /* Saving name booleans to avoid triggering notes with keyboard */
     bool saving_preset = false, saving_audio_file = false;
+    /* LFO dropdown menus booleans */
+    bool lfo_wave = false, lfo_params = false;
+    /* Distortion variables*/
+    bool distortion_on = false, overdrive = false;
+    float distortion_amount = 0.0;
+
+
     char preset_filename[1024] = "\0";
 
     /* Initialize raylib window and font */
@@ -264,7 +277,10 @@ int main(int argc, char **argv)
 
         /* Render the synth into the sound buffer*/
         render_synth(&synth, buffer);
-        distortion(buffer, 0.6, true);
+
+        /* Handle distortion */
+        if (distortion_on)
+            distortion(buffer, distortion_amount, overdrive);        
 
         /* Write the buffer to the sound card */
         int err = snd_pcm_writei(handle, buffer, FRAMES);
@@ -322,7 +338,10 @@ int main(int argc, char **argv)
                 &osc_a, &osc_b, &osc_c,
                 &ddm_a, &ddm_b, &ddm_c,
                 preset_filename, audio_filename,
-                &saving_preset, &saving_audio_file, &recording);
+                &saving_preset, &saving_audio_file, &recording,
+                &lfo_wave, &lfo_params,
+                &distortion_on, &overdrive,
+                &distortion_amount);
             /* We render the white keys and the pressed white keys before the black keys
             so that the black keys correctly overlap with the white keys */
             render_white_keys();

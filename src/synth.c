@@ -147,6 +147,7 @@ void render_synth(synth_t *synth, short *buffer)
                     break;
                 default:
                     sample = 0.0;
+                    break;
                 }
 
                 mixed += sample;
@@ -160,7 +161,11 @@ void render_synth(synth_t *synth, short *buffer)
             mixed /= 3.0;
             mixed *= envelope;
             mixed *= voice->velocity_amp;
-            mixed *= synth->amp;
+
+            if (synth->lfo->mod_param == LFO_AMP)
+                mixed *= synth->lfo_amp;
+            else
+                mixed *= synth->amp;
 
             temp_buffer[i] += mixed;
         }
@@ -181,33 +186,76 @@ void render_synth(synth_t *synth, short *buffer)
     for (int i = 0; i < FRAMES; i++)
     { /* Low-pass filter and gain processing */
 
-        double phase_inc = synth->lfo->freq / RATE;
-        double automation = fabs(sin(2.0 * M_PI * synth->lfo->phase));
-
-        double env_cutoff = synth->filter->cutoff * automation;
-        if (env_cutoff <= 0.0) env_cutoff = 0.01;
-        if (synth->filter->env)
+        /* Processing the LFO */
+        double phase_inc = synth->lfo->osc->freq / RATE;
+        double automation;
+        
+        switch (*synth->lfo->osc->wave)
         {
-            env_cutoff = synth->filter->cutoff +
-                         adsr_process(synth->filter->adsr) / 2;
-            if (env_cutoff > 1.0)
-                env_cutoff = 1.0;
+        case SINE_WAVE:
+            automation = fabs(sin(2.0 * M_PI * synth->lfo->osc->phase));
+            break;
+        case SQUARE_WAVE:
+            automation = (synth->lfo->osc->phase < 0.5) ? 1.0 : 0.0;
+            break;
+        case TRIANGLE_WAVE:
+            automation = fabs(1.0 - 4.0 * fabs(synth->lfo->osc->phase - 0.5));
+            break;
+        case SAWTOOTH_WAVE:
+            automation = synth->lfo->osc->phase;
+            break;
+        default:
+            automation = 0.0;
+            break;
         }
 
+        /* Applyging the LFO to the assigned parameter */
+        switch (synth->lfo->mod_param)
+        {
+        case LFO_CUTOFF:
+            synth->filter->lfo_cutoff = synth->filter->cutoff * automation;
+            break;
+        case LFO_DETUNE:
+            synth->lfo_detune = synth->detune * automation;
+            apply_detune_change(synth);
+            break;
+        case LFO_AMP:
+            synth->lfo_amp = synth->amp * automation;
+            break;
+        default:
+            break;
+        }
+
+        double cutoff = synth->filter->cutoff;
+
+        /* Filter envelope */
+        if (synth->filter->env)
+        {
+            cutoff = synth->filter->cutoff +
+                         adsr_process(synth->filter->adsr) / 2;
+            if (cutoff > 1.0)
+                cutoff = 1.0;
+            synth->filter->env_cutoff = cutoff;
+        }
+
+        /* If the LFO is on the filter, override the filter envelope */
+        if (synth->lfo->mod_param == LFO_CUTOFF)
+            cutoff = synth->filter->lfo_cutoff;
+    
+        /* Gain */
         double sample = temp_buffer[i] * gain;
         if (sample > 1.0)
             sample = 1.0;
         if (sample < -1.0)
             sample = -1.0;
 
-        sample = lp_process(synth->filter, sample, env_cutoff);
-        synth->filter->env_cutoff = env_cutoff;
+        sample = lp_process(synth->filter, sample, cutoff);
+        
         buffer[i] = (short)(sample * 32767.0);
 
-        synth->lfo->phase += phase_inc;
-        if (synth->lfo->phase >= 1.0)
-            synth->lfo->phase -= 1.0;
-        
+        synth->lfo->osc->phase += phase_inc;
+        if (synth->lfo->osc->phase >= 1.0)
+            synth->lfo->osc->phase -= 1.0;
     }
 }
 
@@ -239,11 +287,17 @@ void change_freq(voice_t *voice, int note,
 /* Apply the detune change to the voices oscillators */
 void apply_detune_change(synth_t *synth)
 {
+    float detune;
+    if (synth->lfo->mod_param == LFO_DETUNE)
+        detune = synth->lfo_detune;
+    else 
+        detune = synth->detune;
+    
     for (int v = 0; v < VOICES; v++)
     {   /* Applying detune changes to each voice of the synthesizer */
         int a4_diff = synth->voices[v].note - A4_POSITION;
-        synth->voices[v].oscillators[1].freq = A_4 * pow(2, a4_diff / 12.0) + (5 * synth->detune);
-        synth->voices[v].oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0) - (5 * synth->detune);
+        synth->voices[v].oscillators[1].freq = A_4 * pow(2, a4_diff / 12.0) + (5 * detune);
+        synth->voices[v].oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0) - (5 * detune);
     }
 }
 
