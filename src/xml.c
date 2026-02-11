@@ -1,9 +1,9 @@
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/tree.h>
+#include <raygui.h>
 
 #include "defs.h"
 #include "xml.h"
-#include <raygui.h>
 
 /*
  * Saving a preset into an XML file :

@@ -1,12 +1,11 @@
 #include <stdio.h>
-
 #include <libxml2/libxml/parser.h>
 #include <libxml2/libxml/tree.h>
+#include <raygui.h>
 
 #include "defs.h"
 #include "interface.h"
 #include "synth.h"
-#include <raygui.h>
 
 /* Render the ADSR envelope sliders */
 void render_adsr(

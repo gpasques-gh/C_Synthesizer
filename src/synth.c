@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <math.h>
+
 #include "defs.h"
 #include "synth.h"
 
