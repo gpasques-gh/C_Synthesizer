@@ -147,7 +147,12 @@ int save_preset(
         xmlNewChild(distortion_node, NULL, BAD_CAST "amount", BAD_CAST text_element);
 
         /* Saving the XML document into the file */
-        xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
+        int err = xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
+        if (err)
+        {
+            fprintf(stderr, "error while creating the XML file.\n");
+            return 1;
+        }
         xmlFreeDoc(doc);
         xmlCleanupParser();
     }
