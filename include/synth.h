@@ -79,7 +79,8 @@ typedef struct
     float lfo_detune;
     float amp;
     float lfo_amp;
-    int bpm, active_arp;
+    int active_arp;
+    float bpm;
     float active_arp_float;
     bool arp;
 } synth_t;

@@ -134,7 +134,7 @@ int main(int argc, char **argv)
             .arp = true,
             .active_arp = 0,
             .active_arp_float = 0.0,
-            .bpm = 100};
+            .bpm = 60.0};
 
     /* Error while allocating the synthesizer voices */
     if (synth.voices == NULL)
@@ -349,7 +349,8 @@ int main(int argc, char **argv)
             render_options(
                 audio_filename,
                 &saving_preset, &loading_preset, 
-                &saving_audio_file, &recording);
+                &saving_audio_file, &recording,
+                &synth.arp, &synth.bpm);
             /* Rendering the effects */
             render_effects(
                 &synth,
@@ -381,12 +382,12 @@ int main(int argc, char **argv)
             so that the black keys correctly overlap with the white keys */
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
-                if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && !is_black_key(synth.voices[v].note))
+                if (synth.voices[v].active && !is_black_key(synth.voices[v].note))
                     render_key(synth.voices[v].note);
             /* Now we render the black keys */
             render_black_keys();
             for (int v = 0; v < VOICES; v++)
-                if (synth.voices[v].active && synth.voices[v].adsr->state != ENV_RELEASE && is_black_key(synth.voices[v].note))
+                if (synth.voices[v].active && is_black_key(synth.voices[v].note))
                     render_key(synth.voices[v].note);
         EndDrawing();
     }

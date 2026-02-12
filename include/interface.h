@@ -28,7 +28,8 @@ void render_synth_params(synth_t *synth);
 void render_options(
     char *audio_filename,
     bool *saving_preset, bool *loading_preset,
-    bool *saving_audio_file, bool *recording);
+    bool *saving_audio_file, bool *recording, 
+    bool *arp, float *arp_bpm);
 
 /* Render the effects parameters */
 void render_effects(

@@ -116,7 +116,7 @@ void assign_note(synth_t *synth, int midi_note)
                 active_voices++;
 
             /* Cutting all the voices that are in ADSR release state to avoid blocking voices */
-            if (synth->voices[v].adsr->state == ENV_RELEASE)
+            if (synth->voices[v].adsr->state == ENV_RELEASE && !synth->arp)
             {
                 synth->voices[v].active = 0;
                 synth->voices[v].adsr->state = ENV_IDLE;
@@ -136,6 +136,7 @@ void assign_note(synth_t *synth, int midi_note)
         if (active_voices == 0 && synth->filter->env)
             synth->filter->adsr->state = ENV_ATTACK;
 
+        /* Sort the synth voices */
         if (synth->arp && active_voices > 0)
             sort_synth_voices(synth);
 
@@ -152,14 +153,23 @@ void release_note(synth_t *synth, int midi_note)
         /* If the voice is active, is not in ADSR release state and has the correct MIDI note assigned to it, 
         put it in ADSR release state */
         if (synth->voices[v].note == midi_note && 
-            synth->voices[v].active && 
-            synth->voices[v].adsr->state != ENV_RELEASE)
+            synth->voices[v].active)
         {
             active_voices++;
-            synth->voices[v].adsr->state = ENV_RELEASE;
+            /* If we are in arpeggiator mode */
+            if (synth->arp)
+            {
+                /* Cut the release out when key is released */
+                synth->voices[v].adsr->state = ENV_IDLE;
+                synth->voices[v].active = 0;
+            }
+            else
+                synth->voices[v].adsr->state = ENV_RELEASE;
             break; /* Two voices can't have the same note, we can break */
         }
 
+    /* Sort the synth voices */
     if (synth->arp && active_voices > 0)
-            sort_synth_voices(synth);
+        sort_synth_voices(synth);
+
 }

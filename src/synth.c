@@ -110,16 +110,7 @@ float adsr_process(adsr_t *adsr)
 void render_synth(synth_t *synth, short *buffer)
 {
 
-    if (synth->arp)
-    {
-        for (int v = 0; v < VOICES; v++)
-        {
-            if (synth->voices[v].active && v != synth->active_arp)
-                synth->voices[v].active = 0;
-            else if (!synth->voices[v].active && v == synth->active_arp)
-                synth->voices[v].active = 1;
-        }
-    }
+    
 
     double temp_buffer[FRAMES];
     memset(temp_buffer, 0, FRAMES * sizeof(double));
@@ -133,62 +124,61 @@ void render_synth(synth_t *synth, short *buffer)
             continue;
         active_voices++;
 
-        for (int i = 0; i < FRAMES; i++)
-        { /* Oscillators processing for each voice*/
-            float envelope = adsr_process(voice->adsr);
-            double mixed = 0.0;
+        if ((synth->arp && v == synth->active_arp) || !synth->arp)
+        {
+            for (int i = 0; i < FRAMES; i++)
+            { /* Oscillators processing for each voice*/
+                float envelope = adsr_process(voice->adsr);
+                double mixed = 0.0;
 
-            for (int o = 0; o < 3; o++)
-            {
-                osc_t *osc = &voice->oscillators[o];
-                double phase_inc = osc->freq / RATE;
-                double sample;
-
-                switch (*osc->wave)
+                for (int o = 0; o < 3; o++)
                 {
-                case SINE_WAVE:
-                    sample = sin(2.0 * M_PI * osc->phase);
-                    break;
-                case SQUARE_WAVE:
-                    sample = (osc->phase < 0.5) ? 1.0 : -1.0;
-                    break;
-                case TRIANGLE_WAVE:
-                    sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
-                    break;
-                case SAWTOOTH_WAVE:
-                    sample = 2.0 * osc->phase - 1.0;
-                    break;
-                default:
-                    sample = 0.0;
-                    break;
+                    osc_t *osc = &voice->oscillators[o];
+                    double phase_inc = osc->freq / RATE;
+                    double sample;
+
+                    switch (*osc->wave)
+                    {
+                    case SINE_WAVE:
+                        sample = sin(2.0 * M_PI * osc->phase);
+                        break;
+                    case SQUARE_WAVE:
+                        sample = (osc->phase < 0.5) ? 1.0 : -1.0;
+                        break;
+                    case TRIANGLE_WAVE:
+                        sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
+                        break;
+                    case SAWTOOTH_WAVE:
+                        sample = 2.0 * osc->phase - 1.0;
+                        break;
+                    default:
+                        sample = 0.0;
+                        break;
+                    }
+
+                    mixed += sample;
+
+                    osc->phase += phase_inc;
+                    if (osc->phase >= 1.0)
+                        osc->phase -= 1.0;
                 }
 
-                mixed += sample;
+                /* Oscillator sound mix */
+                mixed /= 3.0;
+                mixed *= envelope;
+                mixed *= voice->velocity_amp;
 
-                osc->phase += phase_inc;
-                if (osc->phase >= 1.0)
-                    osc->phase -= 1.0;
+                if (synth->lfo->mod_param == LFO_AMP)
+                    mixed *= synth->lfo_amp;
+                else
+                    mixed *= synth->amp;
+
+                temp_buffer[i] += mixed;
             }
 
-            /* Oscillator sound mix */
-            mixed /= 3.0;
-            mixed *= envelope;
-            mixed *= voice->velocity_amp;
-
-            if (synth->lfo->mod_param == LFO_AMP)
-                mixed *= synth->lfo_amp;
-            else
-                mixed *= synth->amp;
-
-            temp_buffer[i] += mixed;
         }
 
-        if (voice->adsr->state == ENV_IDLE)
-        {
-            voice->active = 0;
-            if (active_voices > 0)
-                active_voices--;
-        }
+        
     }
 
     /* Gain to stay at the same level despite the number of active voices */
@@ -270,14 +260,37 @@ void render_synth(synth_t *synth, short *buffer)
         if (synth->lfo->osc->phase >= 1.0)
             synth->lfo->osc->phase -= 1.0;
 
-        double bpm_increment = 1.0 / (60 / synth->bpm * RATE);
-        synth->active_arp_float += bpm_increment;
-        if (synth->active_arp_float >= 1.0)
+        /* Handling arpeggiator*/
+        if (synth->arp)
         {
-            if (synth->active_arp >= active_voices)
-                synth->active_arp = 0;
-            else
+            /* BPM management */
+            float bpm_increment = 1.0 / (60.0 / (float)synth->bpm * RATE);
+            synth->active_arp_float += bpm_increment;
+
+            /* If we moved one beat */
+            if (synth->active_arp_float >= 1.0)
+            {
+                /* We move to the next voice */
                 synth->active_arp++;
+                /* If we have gone too far */
+                if (synth->active_arp >= active_voices)
+                    synth->active_arp = 0;
+                /* Reseting the beat counter */
+                synth->active_arp_float = 0.0;
+                /* Reseting the filter envelope if it's on */
+                if (synth->filter->env)
+                    synth->filter->adsr->state = ENV_ATTACK;
+                
+                /* Reseting ADSR envelope when sustain is 0.0 */
+                if (synth->voices[synth->active_arp].adsr->state == ENV_RELEASE ||
+                    synth->voices[synth->active_arp].adsr->state == ENV_IDLE)
+                {
+                    synth->voices[synth->active_arp].adsr->state = ENV_ATTACK;
+                }
+                    
+                //fprintf(stderr, "active arp: %d\n", synth->active_arp);
+                //fprintf(stderr, "active voices: %d\n", active_voices);
+            }
         }
     }
 }
@@ -385,12 +398,28 @@ voice_t *get_free_voice(synth_t *synth)
 /* Insertion sort algorithm for the voices of a synth_t, used for arpeggiator */
 void sort_synth_voices(synth_t *synth)
 {
+    /* First sort the voices */
     for (int v = 1; v < VOICES; v++)
     {
         voice_t current = synth->voices[v];
         int i = v - 1;
         
         while (i >= 0 && synth->voices[i].note > current.note)
+        {
+            synth->voices[i + 1] = synth->voices[i];
+            i--;
+        }
+
+        synth->voices[i + 1] = current;
+    }
+
+    /* Then move the voices with empty notes to the end */
+    for (int v = 1; v < VOICES; v++)
+    {
+        voice_t current = synth->voices[v];
+        int i = v - 1;
+        
+        while (i >= 0 && synth->voices[i].note == 0)
         {
             synth->voices[i + 1] = synth->voices[i];
             i--;
