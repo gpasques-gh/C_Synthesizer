@@ -120,26 +120,39 @@ void assign_note(synth_t *synth, int midi_note)
         for (int v = 0; v < VOICES; v++)
         {
             if (synth->voices[v].pressed)
+            {
                 pressed_voices++;
+            }
+                
 
             /* Cutting all the voices that are in ADSR release state to avoid blocking voices */
             if (synth->voices[v].adsr->state == ENV_RELEASE && !synth->arp)
+            {
                 synth->voices[v].adsr->state = ENV_IDLE;
+            }
         }
 
         voice_t *free_voice = get_free_voice(synth);
-        if (free_voice == NULL)
+        if (free_voice == NULL) 
+        {
             return;
+        }
+
         free_voice->pressed = 1;
         change_freq(free_voice, midi_note, 127, synth->detune);
         if (pressed_voices == 0 && synth->filter->env)
+        {
             synth->filter->adsr->state = ENV_ATTACK;
+        }
+            
 
         if (synth->arp)
         {
             sort_synth_voices(synth);
             if (pressed_voices == 0)
+            {
                 synth->active_arp_float = 1.0;
+            }
         }
             
         return;
@@ -152,33 +165,45 @@ void release_note(synth_t *synth, int midi_note)
     int pressed_voices = 0;
 
     for (int v = 0; v < VOICES; v++)
+    {
         if (synth->voices[v].pressed)
+        {
             pressed_voices++;
+        }
+    }
+        
+            
 
     for (int v = 0; v < VOICES; v++)
+    {
         if (synth->voices[v].note == midi_note && 
             synth->voices[v].pressed == 1)
         {
             if (synth->arp && synth->voices[v].adsr->state != ENV_IDLE)
             {
                 synth->voices[v].adsr->state = ENV_IDLE;
-                
             }
-            else if (!synth->arp && 
-                    synth->voices[v].adsr->state != ENV_RELEASE &&
-                    synth->voices[v].adsr->state != ENV_IDLE)
+            else if (
+               !synth->arp && 
+                synth->voices[v].adsr->state != ENV_RELEASE &&
+                synth->voices[v].adsr->state != ENV_IDLE)
+            {
                 synth->voices[v].adsr->state = ENV_RELEASE;
-
+            }
+                
             synth->voices[v].note = -1;
             synth->voices[v].pressed = 0;
                 
             break;
         }
-
+    }
+        
     if (synth->arp)
     {
         sort_synth_voices(synth);
         if (pressed_voices == 2)
+        {
             synth->active_arp_float = 1.0;
+        }   
     }
 }

@@ -37,11 +37,15 @@ int main(int argc, char **argv)
     int keyboard_layout = QWERTY;
 
     if (strcmp(argv[1], "-kb") == 0 && argc == 2)
+    {
         keyboard_input = 1;
+    }
     else if (strcmp(argv[1], "-kb") == 0 && argc == 3)
     {
         if (strcmp(argv[2], "QWERTY") == 0)
+        {
             keyboard_input = 1;
+        }
         else if (strcmp(argv[2], "AZERTY") == 0)
         {
             keyboard_input = 1;
@@ -205,11 +209,14 @@ int main(int argc, char **argv)
 
     snd_rawmidi_t *midi_in;
     if (midi_input)
+    {
         if (snd_rawmidi_open(&midi_in, NULL, midi_device, SND_RAWMIDI_NONBLOCK) < 0)
         {
             fprintf(stderr, "error while opening midi device %s\n", midi_device);
             goto cleanup_alsa;
         }
+    }
+        
 
     char audio_filename[1024] = "\0";
     FILE *fwav = NULL;
@@ -239,10 +246,11 @@ int main(int argc, char **argv)
             handle_input(&synth, keyboard_layout, &octave);
             handle_release(&synth, keyboard_input, octave);
         }
-
-        if (midi_input)
+        else if (midi_input)
+        {
             get_midi(midi_in, &synth, &attack, &decay, &sustain, &release);
-
+        }
+            
         double tmp_buffer[FRAMES];
         memset(tmp_buffer, 0, FRAMES * sizeof(double));
         process_voices(&synth, tmp_buffer, &active_voices);
@@ -254,11 +262,14 @@ int main(int argc, char **argv)
             sample = process_gain(synth, sample, active_voices);
             sample = process_filter(&synth, sample);
             buffer[i] = (short)(sample * 32767.0);
-            process_arpeggiator(&synth, &active_voices);
+            process_arpeggiator(&synth, active_voices);
         }
 
         if (distortion_on)
+        {
             distortion(buffer, distortion_amount, overdrive);        
+        }
+            
 
         int err = snd_pcm_writei(handle, buffer, FRAMES);
         if (err == -EPIPE)
@@ -321,6 +332,7 @@ int main(int argc, char **argv)
                 &distortion_amount);
 
             if (loading_preset)
+            {
                 load_preset(
                     &synth,
                     &attack, &decay, &sustain, &release,
@@ -328,8 +340,10 @@ int main(int argc, char **argv)
                     &distortion_on, &overdrive, 
                     &distortion_amount, 
                     &loading_preset);
-
+            }
+                
             if (saving_preset)
+            {
                 save_preset(
                     synth,
                     attack, decay, sustain, release,
@@ -337,20 +351,38 @@ int main(int argc, char **argv)
                     preset_filename, &saving_preset, 
                     distortion_on, overdrive,
                     distortion_amount);
-
+            }
+                
             render_white_keys();
             for (int v = 0; v < VOICES; v++)
+            {
                 if (synth.voices[v].pressed && !is_black_key(synth.voices[v].note))
+                {
                     render_key(synth.voices[v].note, false);
-            if (synth.arp && !is_black_key(synth.voices[synth.active_arp].note))
-                    render_key(synth.voices[synth.active_arp].note, true);
+                }
+            }
+            if (synth.arp && 
+                !is_black_key(synth.voices[synth.active_arp].note) &&
+                synth.voices[synth.active_arp].pressed)
+            {
+                render_key(synth.voices[synth.active_arp].note, true);
+            }
 
             render_black_keys();
             for (int v = 0; v < VOICES; v++)
+            {
                 if (synth.voices[v].pressed && is_black_key(synth.voices[v].note))
+                {
                     render_key(synth.voices[v].note, false);
-            if (synth.arp && is_black_key(synth.voices[synth.active_arp].note))
+                }
+            }
+            if (synth.arp && 
+                is_black_key(synth.voices[synth.active_arp].note) &&
+                synth.voices[synth.active_arp].pressed)
+            {
                 render_key(synth.voices[synth.active_arp].note, true);
+            }
+                
     
         EndDrawing();
     }
@@ -358,7 +390,9 @@ int main(int argc, char **argv)
     CloseWindow();
 
     if (midi_in)
+    {
         snd_rawmidi_close(midi_in);
+    }
 
     /* If we quit the application during recording, change WAV header and close WAV file */
     if (fwav != NULL && recording)

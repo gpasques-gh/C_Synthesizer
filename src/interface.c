@@ -67,19 +67,27 @@ void render_osc_waveforms(
     if (GuiDropdownBox((Rectangle){60, 285, 140, 40},
                        "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
                        wave_a, *ddm_a))
+    {
         *ddm_a = !*ddm_a;
+    }
+        
 
     GuiLabel((Rectangle){250, 265, 110, 20}, "Oscillator B");
     if (GuiDropdownBox((Rectangle){230, 285, 140, 40},
                        "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
                        wave_b, *ddm_b))
+    {
         *ddm_b = !*ddm_b;
+    }
+        
 
     GuiLabel((Rectangle){420, 265, 110, 20}, "Oscillator C");
     if (GuiDropdownBox((Rectangle){400, 285, 140, 40},
                        "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
                        wave_c, *ddm_c))
+    {
         *ddm_c = !*ddm_c;
+    }
 }
 
 /* Render the synthesizer parameters */
@@ -92,21 +100,30 @@ void render_synth_params(synth_t *synth)
     GuiSlider((Rectangle){640, 260, 225, 40}, NULL, NULL,
               &synth->amp, 0.0f, 1.0f);
     if (synth->lfo->mod_param == LFO_AMP)
+    {
         DrawRectangle(640, 260, 225 * synth->lfo_amp, 40, GRAY);
-
+    }
+       
     GuiLabel((Rectangle){730, 310, 100, 20}, "Cutoff");
     GuiSlider((Rectangle){640, 330, 225, 40}, NULL, NULL,
               &synth->filter->cutoff, 0.0f, 2.0f);
     if (synth->lfo->mod_param == LFO_CUTOFF)
+    {
         DrawRectangle(640, 330, 225 * (synth->filter->lfo_cutoff / 2), 40, GRAY);
+    }
 
     GuiLabel((Rectangle){990, 240, 100, 20}, "Detune");
     if (GuiSlider((Rectangle){900, 260, 225, 40}, NULL, NULL,
               &synth->detune, 0.0f, 1.0f))
+    {
         apply_detune_change(synth);
+    }
+       
     if (synth->lfo->mod_param == LFO_DETUNE)
+    {
         DrawRectangle(900, 260, 225 * synth->lfo_detune, 40, GRAY);
-
+    }
+        
     GuiCheckBox((Rectangle){900, 330, 40, 40}, "Filter ADSR",
                 &synth->filter->env);
 }
@@ -122,25 +139,35 @@ void render_options(
     GuiGroupBox((Rectangle){1190, 230, 554, 160}, "Options");
 
     if (GuiButton((Rectangle){1210, 240, 120, 40}, "Save preset"))
+    {
         *saving_preset = true;
+    }   
 
     if (GuiButton((Rectangle){1210, 290, 120, 40}, "Load preset"))
+    {
         *loading_preset = true;
-
+    }
+        
     int record_button = GuiButton((Rectangle){1210, 340, 120, 40}, "Record");
 
     if (record_button && !*recording)
+    {
         *saving_audio_file = true;
-
+    }
     else if (record_button && *recording)
+    {
         *recording = false;
+    }
+        
 
     if (*saving_audio_file)
     {
         int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100},
                                   "Audio file name :", "", "Start recording", audio_filename, 20, false);
         if (res == 0)
+        {
             *saving_audio_file = false;
+        }
         else if (res == 1)
         {
             *recording = true;
@@ -150,16 +177,19 @@ void render_options(
 
     /* Drawing a little rectangle that shows we are recording */
     if (*recording)
+    {
         DrawRectangleRounded((Rectangle){1340, 340, 5, 40}, 0.2, 10, RED);
-
+    }
+        
     if (GuiCheckBox((Rectangle){1350, 230, 40, 40}, "Arpeggiator", &synth->arp))
     {
         for (int v = 0; v < VOICES; v++)
         {
-            if (synth->voices[v].adsr->state == ENV_RELEASE)
-                synth->voices[v].pressed = 0;
+            synth->voices[v].adsr->state = ENV_IDLE;
+            synth->voices[v].pressed = 0;
         }
     }
+
     GuiSlider((Rectangle){1350, 280, 225, 40}, NULL, NULL, &synth->bpm, 0.0, 250.0);
 }
 
@@ -181,14 +211,18 @@ void render_effects(
     if (GuiDropdownBox((Rectangle){1210, 70, 130, 40},
                        "#01#Sine;#02#Square;#03#Triangle;#04#Sawtooth",
                        synth->lfo->osc->wave, *lfo_wave_ddm))
+    {
         *lfo_wave_ddm = !*lfo_wave_ddm;
+    }
 
     GuiLabel((Rectangle){1345 + 130 / 2 - 100 / 2, 50, 100, 20}, "LFO param");
     if (GuiDropdownBox((Rectangle){1345, 70, 130, 40},
                        "#01#Off;#02#Cutoff;#03#Detune;#04#Amp",
                        &synth->lfo->mod_param, *lfo_params_ddm))
+    {
         *lfo_params_ddm = !*lfo_params_ddm;
-
+    }
+        
     /* Distortion */
     GuiLabel((Rectangle){1540 - 25, 50, 100, 20}, "Distortion");
     GuiCheckBox((Rectangle){1540, 70, 40, 40}, NULL, distortion);
@@ -224,13 +258,21 @@ void render_waveform(short *buffer)
 
         /* Preventing the waveforum going vertically past the GuiGroupBox */
         if (y1 < 420)
+        {
             y1 = 420;
+        }
         if (y2 < 420)
+        {
             y2 = 420;
+        }
         if (y1 > 580)
+        {
             y1 = 580;
+        }
         if (y2 > 580)
+        {
             y2 = 580;
+        }
 
         DrawLine(x1, y1, x2, y2, BLACK);
     }
@@ -240,8 +282,11 @@ void render_waveform(short *buffer)
 void render_white_keys()
 {
     for (int i = 0; i < WHITE_KEYS; i++)
+    {
         DrawRectangleLines(i * WHITE_KEYS_WIDTH, HEIGHT - WHITE_KEYS_HEIGHT,
                            WHITE_KEYS_WIDTH + 1, WHITE_KEYS_HEIGHT, BLACK);
+    }
+        
 }
 
 /* Render the black keys from the MIDI piano visualizer */
@@ -262,10 +307,14 @@ void render_black_keys()
             }
             white_key_index++;
             if (white_key_index >= WHITE_KEYS)
+            {
                 break;
+            }   
         }
         if (white_key_index >= WHITE_KEYS)
+        {
             break;
+        }
     }
 }
 
@@ -274,15 +323,22 @@ Render the key in a different color if it's the current arpeggio key */
 void render_key(int midi_note, bool arp)
 {
     if (midi_note < 0)
+    {
         return;
+    }
+        
 
     int width = 0, height = 0, x = 0, y = 0, is_black = 0;
     get_key_position(midi_note, &x, &y, &width, &height, &is_black);
 
     if (arp)
+    {
         DrawRectangle(x, y, width, height, SKYBLUE);
+    }
     else
+    {
         DrawRectangle(x, y, width, height, (Color){151, 232, 255, 255});
+    }
 
     DrawRectangleLines(x, y, width, height, BLACK);
 
@@ -290,9 +346,13 @@ void render_key(int midi_note, bool arp)
     if (!is_black)
     {
         if (arp)
+        {
             DrawLine(x + width, y + 1, x + width, y + height, SKYBLUE);
+        }
         else 
+        {
             DrawLine(x + width, y + 1, x + width, y + height, (Color){151, 232, 255, 255});
+        }
         DrawLine(x, y + height, x + width, y + height, BLACK);
     }
 }

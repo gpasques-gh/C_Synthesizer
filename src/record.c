@@ -62,7 +62,14 @@ int init_wav_file(char *fname, FILE **fwav, wav_header_t *header)
 int close_wav_file(FILE *fwav)
 {
     if (fwav != NULL)
-        fclose(fwav);
+    {
+        int err = fclose(fwav);
+        if (err)
+        {
+            fprintf(stderr, "cannot close wav file\n");
+            return 1;    
+        }
+    }   
     else 
     {
         fprintf(stderr, "cannot close wav file\n");

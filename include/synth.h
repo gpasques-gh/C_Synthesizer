@@ -95,20 +95,20 @@ typedef struct
  */
 float adsr_process(adsr_t *adsr);
 
-
 /* Process the synth voices into the sound buffer */
 void process_voices(synth_t *synth, double *tmp_buffer, int *active_voices);
 
 /* Process the LFO modulation */
 void process_lfo(synth_t *synth);
 
-/* Process the gain and low-pass filter onto the sound buffer */
+/* Process the gain on a sample */
 double process_gain(synth_t synth, double sample, int active_voices);
 
+/* Process the low-pass filter on a sample */
 double process_filter(synth_t *synth, double sample);
 
 /* Process the arpeggiator */
-void process_arpeggiator(synth_t *synth, int *active_voices);
+void process_arpeggiator(synth_t *synth, int active_voices);
 
 /*
  * Change the frequency of a voice_t oscillators with the given MIDI note and velocity

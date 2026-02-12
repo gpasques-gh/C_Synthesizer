@@ -5,23 +5,36 @@
 void distortion(short *buffer, float amount, bool overdriving)
 {
     if (amount > 1.0)
+    {
         amount = 1.0;
+
+    }
     else if (amount < 0.0)
+    {
         amount = 0.0;
+    }
 
     short clip;
     
     if (overdriving)
+    {
         clip = (32767 / 2) *  (1 - amount);
+    }
     else 
+    {
         clip = 32767 *  (1 - amount);
+    }
 
     for (int i = 0; i < FRAMES; i++)
     {
         if (buffer[i] > clip)
+        {
             buffer[i] = clip;
-        if (buffer[i] < -clip)
+        }
+        else if (buffer[i] < -clip)
+        {
             buffer[i] = -clip;
+        }
 
         /* Gain to avoid silencing when amount is high */
         buffer[i] *= 1.0 + (1.0 - clip / 32767.0); 

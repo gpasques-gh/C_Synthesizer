@@ -30,9 +30,9 @@ int save_preset(
     int res = GuiTextInputBox((Rectangle){WIDTH / 2 - 100, HEIGHT / 2 - 50, 200, 100}, "Preset name :", "", "Save preset", preset_filename, 20, false);
 
     if (res == 0)
-        /* If the textbox is closed */
+    {
         *saving_preset = false;
-    /* If the textbox is submitted */
+    }
     else if (res == 1)
     {
         *saving_preset = false;
@@ -243,10 +243,15 @@ int load_preset(
                         fprintf(stderr, "bad cutoff value.\n");
                         return 1;
                     }
+
                     if (cutoff_float > 1.0)
+                    {
                         cutoff_float = 1.0;
+                    }
                     else if (cutoff_float < 0.0)
+                    {
                         cutoff_float = 0.0;
+                    }
                     synth->filter->cutoff = cutoff_float;
                 }
                 /* Filter ADSR envelope ON/OFF */
@@ -261,10 +266,15 @@ int load_preset(
                         fprintf(stderr, "bad envelope value.\n");
                         return 1;
                     }
+
                     if (env_on_int > 1)
+                    {
                         env_on_int = 1;
+                    }
                     else if (env_on_int < 0)
+                    {
                         env_on_int = 0;
+                    }
                     synth->filter->env = env_on_int;
                 }
             }
@@ -288,10 +298,15 @@ int load_preset(
                         fprintf(stderr, "bad osc a value.\n");
                         return 1;
                     }
+
                     if (osc_a_wave > 4)
+                    {
                         osc_a_wave = 4;
+                    }
                     else if (osc_a_wave < 0)
+                    {
                         osc_a_wave = 0;
+                    }
                     *wave_a = osc_a_wave;
                 }
                 /* Oscillator B */
@@ -306,10 +321,15 @@ int load_preset(
                         fprintf(stderr, "bad osc b value.\n");
                         return 1;
                     }
-                    if (osc_b_wave > 3)
-                        osc_b_wave = 3;
-                    else if (osc_b_wave < 0)
-                        osc_b_wave = 0;
+
+                    if (osc_b_wave > SAWTOOTH_WAVE)
+                    {
+                        osc_b_wave = SAWTOOTH_WAVE;
+                    }
+                    else if (osc_b_wave < SINE_WAVE)
+                    {
+                        osc_b_wave = SINE_WAVE;
+                    }
                     *wave_b = osc_b_wave;
                 }
                 /* Oscillator C */
@@ -324,10 +344,15 @@ int load_preset(
                         fprintf(stderr, "bad osc b value.\n");
                         return 1;
                     }
-                    if (osc_c_wave > 3)
-                        osc_c_wave = 3;
-                    else if (osc_c_wave < 0)
-                        osc_c_wave = 0;
+
+                    if (osc_c_wave > SAWTOOTH_WAVE)
+                    {
+                        osc_c_wave = SAWTOOTH_WAVE;
+                    }
+                    else if (osc_c_wave < SINE_WAVE)
+                    {
+                        osc_c_wave = SINE_WAVE;
+                    }
                     *wave_c = osc_c_wave;
                 }
             }
@@ -352,10 +377,15 @@ int load_preset(
                         fprintf(stderr, "bad cutoff value.\n");
                         return 1;
                     }
+
                     if (detune_float > 1.0)
+                    {
                         detune_float = 1.0;
+                    }
                     else if (detune_float < 0.0)
+                    {
                         detune_float = 0.0;
+                    }
                     synth->detune = detune_float;
                 }
                 /* Amplification */
@@ -370,10 +400,15 @@ int load_preset(
                         fprintf(stderr, "bad cutoff value.\n");
                         return 1;
                     }
+
                     if (amp_float > 1.0)
-                        amp_float = 1.0;
+                    {
+                        amp_float = 1.0;                        
+                    }
                     else if (amp_float < 0.0)
+                    {
                         amp_float = 0.0;
+                    }
                     synth->amp = amp_float;
                 }
                 /* LFO */
@@ -396,10 +431,15 @@ int load_preset(
                                 fprintf(stderr, "bad lfo waveform value.\n");
                                 return 1;
                             }
+
                             if (lfo_wave_int > SAWTOOTH_WAVE)
+                            {
                                 lfo_wave_int = SAWTOOTH_WAVE;
+                            }
                             else if (lfo_wave_int < SINE_WAVE)
+                            {
                                 lfo_wave_int = SINE_WAVE;
+                            }
                             *synth->lfo->osc->wave = lfo_wave_int;
                         }
                         else if (lfo_child->type == XML_ELEMENT_NODE &&
@@ -413,10 +453,15 @@ int load_preset(
                                 fprintf(stderr, "bad lfo frequency value.\n");
                                 return 1;
                             }
+
                             if (lfo_freq_float > 1.0)
+                            {
                                 lfo_freq_float = 1.0;
+                            }
                             else if (lfo_freq_float < 0.0)
+                            {
                                 lfo_freq_float = 0.0;
+                            }
                             synth->lfo->osc->freq = lfo_freq_float;
                         }
                         else if (lfo_child->type == XML_ELEMENT_NODE &&
@@ -430,10 +475,15 @@ int load_preset(
                                 fprintf(stderr, "bad lfo param value.\n");
                                 return 1;
                             }
+
                             if (lfo_param_int > LFO_AMP)
+                            {
                                 lfo_param_int = LFO_AMP;
+                            }
                             else if (lfo_param_int < LFO_OFF)
+                            {
                                 lfo_param_int = LFO_OFF;
+                            }
                             synth->lfo->mod_param = lfo_param_int;
                         }
                     }
@@ -458,10 +508,15 @@ int load_preset(
                                 fprintf(stderr, "bad distortion on/off value.\n");
                                 return 1;
                             }
+
                             if (dist_bool > 1)
+                            {
                                 dist_bool = 1;
+                            }
                             else if (dist_bool < 0)
+                            {
                                 dist_bool = 0;
+                            }
                             *distortion = dist_bool;
                         }
                         /* Overdrive ON/OFF */
@@ -476,10 +531,15 @@ int load_preset(
                                 fprintf(stderr, "bad overdrive on/off value.\n");
                                 return 1;
                             }
+
                             if (od_bool > 1)
+                            {
                                 od_bool = 1;
+                            }
                             else if (od_bool < 0)
+                            {
                                 od_bool = 0;
+                            }
                             *overdrive = od_bool;
                         }
                         /* Distortion amount */
@@ -494,10 +554,15 @@ int load_preset(
                                 fprintf(stderr, "bad distortion amount value.\n");
                                 return 1;
                             }
+
                             if (dist_amount_float > 1.0)
+                            {
                                 dist_amount_float = 1.0;
+                            }
                             else if (dist_amount_float < 0.0)
+                            {
                                 dist_amount_float = 0.0;
+                            }
                             *distortion_amount = dist_amount_float;
                         }
                     }
@@ -533,13 +598,22 @@ int parse_adsr(
                 return 1;
             }
             if (attack_float > 2.0)
+            {
                 attack_float = 2.0;
-            else if (attack_float < 0.0)
+            }
+            else if (attack_float < 0.0) 
+            {
                 attack_float = 0.0;
+            }
+            
             if (filter)
+            {
                 *synth->filter->adsr->attack = attack_float;
+            }
             else
+            {
                 *attack = attack_float;
+            }
         }
         /* Decay Node */
         else if (child->type == XML_ELEMENT_NODE &&
@@ -554,13 +628,23 @@ int parse_adsr(
                 return 1;
             }
             if (decay_float > 2.0)
+            {
                 decay_float = 2.0;
+            }
             else if (decay_float < 0.0)
-                decay_float = 0.0;
+            {
+            decay_float = 0.0;
+
+            }
+                
             if (filter)
+            {
                 *synth->filter->adsr->decay = decay_float;
+            }
             else
+            {
                 *decay = decay_float;
+            }
         }
         /* Sustain Node */
         else if (child->type == XML_ELEMENT_NODE &&
@@ -575,13 +659,22 @@ int parse_adsr(
                 return 1;
             }
             if (sustain_float > 1.0)
+            {
                 sustain_float = 1.0;
+            }
             else if (sustain_float < 0.0)
+            {
                 sustain_float = 0.0;
+            }
+
             if (filter)
+            {
                 *synth->filter->adsr->sustain = sustain_float;
+            }
             else
+            {
                 *sustain = sustain_float;
+            }
         }
         /* Release Node */
         else if (child->type == XML_ELEMENT_NODE &&
@@ -596,13 +689,22 @@ int parse_adsr(
                 return 1;
             }
             if (release_float > 1.0)
+            {
                 release_float = 1.0;
+            }
             else if (release_float < 0.0)
+            {
                 release_float = 0.0;
+            }
+
             if (filter)
+            {
                 *synth->filter->adsr->release = release_float;
+            }
             else
+            {
                 *release = release_float;
+            }
         }
     }
     return 0;
