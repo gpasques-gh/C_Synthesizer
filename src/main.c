@@ -133,6 +133,7 @@ int main(int argc, char **argv)
             .lfo = &lfo,
             .arp = true,
             .active_arp = 0,
+            .active_arp_float = 0.0,
             .bpm = 100};
 
     /* Error while allocating the synthesizer voices */

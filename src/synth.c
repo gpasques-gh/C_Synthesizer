@@ -109,6 +109,18 @@ float adsr_process(adsr_t *adsr)
 /* Renders the synth_t voices into the temporary sound buffer */
 void render_synth(synth_t *synth, short *buffer)
 {
+
+    if (synth->arp)
+    {
+        for (int v = 0; v < VOICES; v++)
+        {
+            if (synth->voices[v].active && v != synth->active_arp)
+                synth->voices[v].active = 0;
+            else if (!synth->voices[v].active && v == synth->active_arp)
+                synth->voices[v].active = 1;
+        }
+    }
+
     double temp_buffer[FRAMES];
     memset(temp_buffer, 0, FRAMES * sizeof(double));
 
@@ -257,6 +269,16 @@ void render_synth(synth_t *synth, short *buffer)
         synth->lfo->osc->phase += phase_inc;
         if (synth->lfo->osc->phase >= 1.0)
             synth->lfo->osc->phase -= 1.0;
+
+        double bpm_increment = 1.0 / (60 / synth->bpm * RATE);
+        synth->active_arp_float += bpm_increment;
+        if (synth->active_arp_float >= 1.0)
+        {
+            if (synth->active_arp >= active_voices)
+                synth->active_arp = 0;
+            else
+                synth->active_arp++;
+        }
     }
 }
 

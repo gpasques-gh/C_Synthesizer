@@ -80,6 +80,7 @@ typedef struct
     float amp;
     float lfo_amp;
     int bpm, active_arp;
+    float active_arp_float;
     bool arp;
 } synth_t;
 
