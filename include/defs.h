@@ -2,8 +2,6 @@
 #define DEFS_H
 
 #include <raylib.h>
-
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -27,10 +25,8 @@
 #define AZERTY 1
 
 /* Keyboard note keys */
-#define kC_QWERTY KEY_Q
-#define kC_AZERTY KEY_A
-#define kC_SHARP_QWERTY KEY_Z
-#define kC_SHARP_AZERTY KEY_W
+#define kC KEY_A
+#define kC_SHARP KEY_W
 #define kD KEY_S
 #define kD_SHARP KEY_E
 #define kE KEY_D
@@ -72,7 +68,7 @@
 #define A_4 440
 #define RATE 44100
 #define DEFAULT_AMPLITUDE 0.5
-#define A4_POSITION 58
+#define A4_POSITION 57
 
 /* Oscillators waveforms */
 #define SINE_WAVE 0

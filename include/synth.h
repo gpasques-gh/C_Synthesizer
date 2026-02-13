@@ -59,7 +59,7 @@ typedef struct
 {
     osc_t *oscillators;
     adsr_t *adsr;
-    int active;
+    int pressed;
     int note;
     double velocity_amp;
 } voice_t;
@@ -69,6 +69,10 @@ typedef struct
  * Voices is an array of voice_t
  * Detune is between 0.0 and 1.0
  * Amplification is between 0.0 and 1.0
+ * The LFO variables are used when the LFO is modulating the base variable
+ * The active_arp variable is the index of the current active voice from the arpeggio
+ * The active_arp_float is a number between 0 and 1 
+ * used to move from beat to beat on the arpeggio
  */
 typedef struct
 {
@@ -79,7 +83,9 @@ typedef struct
     float lfo_detune;
     float amp;
     float lfo_amp;
-    int bpm, active_arp;
+    int active_arp;
+    float bpm;
+    float active_arp_float;
     bool arp;
 } synth_t;
 
@@ -89,8 +95,20 @@ typedef struct
  */
 float adsr_process(adsr_t *adsr);
 
-/* Renders the synth_t voices into the temporary sound buffer */
-void render_synth(synth_t *synth, short *buffer);
+/* Process the synth voices into the sound buffer */
+void process_voices(synth_t *synth, double *tmp_buffer, int *active_voices);
+
+/* Process the LFO modulation */
+void process_lfo(synth_t *synth);
+
+/* Process the gain on a sample */
+double process_gain(synth_t synth, double sample, int active_voices);
+
+/* Process the low-pass filter on a sample */
+double process_filter(synth_t *synth, double sample);
+
+/* Process the arpeggiator */
+void process_arpeggiator(synth_t *synth, int active_voices);
 
 /*
  * Change the frequency of a voice_t oscillators with the given MIDI note and velocity
@@ -106,12 +124,11 @@ void apply_detune_change(synth_t *synth);
 const char *get_wave_name(int wave);
 
 /*
- * Process a sample with the low-pass filter
+ * Process a sample with the low-pass filter and the given cutoff
  * Returns the processed sample
  */
-double
-lp_process(lp_filter_t *filter, double input,
-           float cutoff);
+double lp_process(lp_filter_t *filter, double input,
+                float cutoff);
 
 /*
  * Returns the first free voice from the synth_t
@@ -119,7 +136,7 @@ lp_process(lp_filter_t *filter, double input,
  */
 voice_t *get_free_voice(synth_t *synth);
 
-/* Insertion sort algorithm for the voices of a synth_t, used for arpeggiator */
+/* Insertion sort algorithm for the voices of a synth_t, used for the arpeggiator */
 void sort_synth_voices(synth_t *synth);
 
 #endif

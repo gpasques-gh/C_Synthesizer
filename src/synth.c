@@ -80,9 +80,11 @@ float adsr_process(adsr_t *adsr)
             adsr->output -= decrement;
             adsr->state = ENV_RELEASE;
         }
-        else 
+        else
+        {
             /* We put the amplification at the sustain level */
             adsr->output = *adsr->sustain;
+        }
         break;
     case ENV_RELEASE:
         if (*adsr->release > 0.0)
@@ -106,91 +108,92 @@ float adsr_process(adsr_t *adsr)
     return adsr->output;
 }
 
-/* Renders the synth_t voices into the temporary sound buffer */
-void render_synth(synth_t *synth, short *buffer)
-{
-    double temp_buffer[FRAMES];
-    memset(temp_buffer, 0, FRAMES * sizeof(double));
 
-    int active_voices = 0;
+/* Process the synth voices into the sound buffer */
+void process_voices(synth_t *synth, double *tmp_buffer, int *active_voices)
+{
+    *active_voices = 0;
 
     for (int v = 0; v < VOICES; v++)
     {
         voice_t *voice = &synth->voices[v];
-        if (!voice->active)
-            continue;
-        active_voices++;
-
-        for (int i = 0; i < FRAMES; i++)
-        { /* Oscillators processing for each voice*/
-            float envelope = adsr_process(voice->adsr);
-            double mixed = 0.0;
-
-            for (int o = 0; o < 3; o++)
-            {
-                osc_t *osc = &voice->oscillators[o];
-                double phase_inc = osc->freq / RATE;
-                double sample;
-
-                switch (*osc->wave)
-                {
-                case SINE_WAVE:
-                    sample = sin(2.0 * M_PI * osc->phase);
-                    break;
-                case SQUARE_WAVE:
-                    sample = (osc->phase < 0.5) ? 1.0 : -1.0;
-                    break;
-                case TRIANGLE_WAVE:
-                    sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
-                    break;
-                case SAWTOOTH_WAVE:
-                    sample = 2.0 * osc->phase - 1.0;
-                    break;
-                default:
-                    sample = 0.0;
-                    break;
-                }
-
-                mixed += sample;
-
-                osc->phase += phase_inc;
-                if (osc->phase >= 1.0)
-                    osc->phase -= 1.0;
-            }
-
-            /* Oscillator sound mix */
-            mixed /= 3.0;
-            mixed *= envelope;
-            mixed *= voice->velocity_amp;
-
-            if (synth->lfo->mod_param == LFO_AMP)
-                mixed *= synth->lfo_amp;
-            else
-                mixed *= synth->amp;
-
-            temp_buffer[i] += mixed;
-        }
-
         if (voice->adsr->state == ENV_IDLE)
         {
-            voice->active = 0;
-            if (active_voices > 0)
-                active_voices--;
+            continue;
+        }
+        (*active_voices)++;
+
+        if ((synth->arp && v == synth->active_arp) || !synth->arp)
+        {
+            for (int i = 0; i < FRAMES; i++)
+            {
+                float envelope = adsr_process(voice->adsr);
+                double mixed = 0.0;
+
+                for (int o = 0; o < 3; o++)
+                {
+                    osc_t *osc = &voice->oscillators[o];
+                    double phase_inc = osc->freq / RATE;
+                    double sample;
+
+                    switch (*osc->wave)
+                    {
+                    case SINE_WAVE:
+                        sample = sin(2.0 * M_PI * osc->phase);
+                        break;
+                    case SQUARE_WAVE:
+                        sample = (osc->phase < 0.5) ? 1.0 : -1.0;
+                        break;
+                    case TRIANGLE_WAVE:
+                        sample = 1.0 - 4.0 * fabs(osc->phase - 0.5);
+                        break;
+                    case SAWTOOTH_WAVE:
+                        sample = 2.0 * osc->phase - 1.0;
+                        break;
+                    default:
+                        sample = 0.0;
+                        break;
+                    }
+
+                    mixed += sample;
+
+                    osc->phase += phase_inc;
+                    if (osc->phase >= 1.0)
+                    {
+                        osc->phase -= 1.0;
+                    }
+                }
+
+                /* Oscillator sound mix */
+                mixed /= 3.0;
+                mixed *= envelope;
+                mixed *= voice->velocity_amp;
+
+                if (synth->lfo->mod_param == LFO_AMP)
+                {
+                    mixed *= synth->lfo_amp;
+                }
+                else
+                {
+                    mixed *= synth->amp;
+                }
+
+                tmp_buffer[i] += mixed;
+            }
         }
     }
+}
 
-    /* Gain to stay at the same level despite the number of active voices */
-    double gain = (active_voices > 0)
-                      ? 1.0 / sqrt((double)active_voices)
-                      : 0.0;
-
-    for (int i = 0; i < FRAMES; i++)
-    { /* Low-pass filter and gain processing */
-
+/* Process the LFO modulation */
+void process_lfo(synth_t *synth)
+{
+    if (synth->lfo->mod_param != LFO_OFF)
+    {
         /* Processing the LFO */
         double phase_inc = synth->lfo->osc->freq / RATE;
         double automation;
         
+        /* Calculating the wave from the LFO */
         switch (*synth->lfo->osc->wave)
         {
         case SINE_WAVE:
@@ -227,36 +230,99 @@ void render_synth(synth_t *synth, short *buffer)
             break;
         }
 
-        double cutoff = synth->filter->cutoff;
-
-        /* Filter envelope */
-        if (synth->filter->env)
-        {
-            cutoff = synth->filter->cutoff +
-                         adsr_process(synth->filter->adsr) / 2;
-            if (cutoff > 1.0)
-                cutoff = 1.0;
-            synth->filter->env_cutoff = cutoff;
-        }
-
-        /* If the LFO is on the filter, override the filter envelope */
-        if (synth->lfo->mod_param == LFO_CUTOFF)
-            cutoff = synth->filter->lfo_cutoff;
-    
-        /* Gain */
-        double sample = temp_buffer[i] * gain;
-        if (sample > 1.0)
-            sample = 1.0;
-        if (sample < -1.0)
-            sample = -1.0;
-
-        sample = lp_process(synth->filter, sample, cutoff);
-        
-        buffer[i] = (short)(sample * 32767.0);
-
         synth->lfo->osc->phase += phase_inc;
         if (synth->lfo->osc->phase >= 1.0)
+        {
             synth->lfo->osc->phase -= 1.0;
+        }
+    }
+}
+
+/* Process the gain and low-pass filter onto the sound buffer */
+double process_gain(synth_t synth, double sample, int active_voices)
+{
+    /* No gain if arpeggio*/
+    if (synth.arp)
+    {
+        return sample;
+    }
+    
+     /* Gain to stay at the same level despite the number of active voices */
+    double gain = (active_voices > 0)
+                      ? 1.0 / sqrt((double)active_voices)
+                      : 0.0;
+
+    /* Gain processing */
+    double processed_sample = sample * gain;
+    if (processed_sample > 1.0)
+    {
+        processed_sample = 1.0;
+    }
+    if (processed_sample < -1.0)
+    {
+        processed_sample = -1.0;
+    }
+
+    return processed_sample;
+}
+
+double process_filter(synth_t *synth, double sample)
+{
+    double cutoff = synth->filter->cutoff;
+ 
+    if (synth->filter->env)
+    {
+        cutoff = synth->filter->cutoff +
+                        adsr_process(synth->filter->adsr) / 2;
+        if (cutoff > 1.0)
+        {
+            cutoff = 1.0;
+        }
+        synth->filter->env_cutoff = cutoff;
+    }
+
+    /* If the LFO is on the filter, override the filter envelope */
+    if (synth->lfo->mod_param == LFO_CUTOFF)
+    {
+        cutoff = synth->filter->lfo_cutoff;
+    }
+    return lp_process(synth->filter, sample, cutoff);
+}
+
+/* Process the arpeggiator */
+void process_arpeggiator(synth_t *synth, int active_voices)
+{
+    if (synth->arp)
+    {
+        float bpm_increment = 1.0 / (60.0 / (float)synth->bpm * RATE);
+        synth->active_arp_float += bpm_increment;
+
+        if (synth->active_arp_float >= 1.0)
+        {
+            synth->active_arp++;
+            if (synth->active_arp >= active_voices)
+            {
+                synth->active_arp = 0;
+            }
+                
+
+            synth->active_arp_float = 0.0;
+            
+            /* Reseting ADSR envelope */
+            if (synth->voices[synth->active_arp].pressed)
+            {
+                synth->voices[synth->active_arp].adsr->state = ENV_ATTACK;
+                if (synth->filter->env)
+                {
+                    synth->filter->adsr->state = ENV_ATTACK;
+                }
+            }
+
+            /* debug logs */
+            //fprintf(stderr, "\nfirst note %d\n", synth->voices[0].note);
+            //fprintf(stderr, "active voices %d\n", active_voices);
+            //fprintf(stderr, "active arp %d\n", synth->active_arp);
+        }
     }
 }
 
@@ -271,7 +337,6 @@ void change_freq(voice_t *voice, int note,
 
     /* Activating the voice */
     voice->note = note;
-    voice->active = 1;
     voice->adsr->output = 0.001;
     voice->adsr->state = ENV_ATTACK;
     voice->velocity_amp = velocity / MIDI_MAX_VALUE;
@@ -290,12 +355,16 @@ void apply_detune_change(synth_t *synth)
 {
     float detune;
     if (synth->lfo->mod_param == LFO_DETUNE)
+    {
         detune = synth->lfo_detune;
+    }
     else 
+    {
         detune = synth->detune;
+    }
     
     for (int v = 0; v < VOICES; v++)
-    {   /* Applying detune changes to each voice of the synthesizer */
+    {
         int a4_diff = synth->voices[v].note - A4_POSITION;
         synth->voices[v].oscillators[1].freq = A_4 * pow(2, a4_diff / 12.0) + (5 * detune);
         synth->voices[v].oscillators[2].freq = A_4 * pow(2, a4_diff / 12.0) - (5 * detune);
@@ -321,18 +390,21 @@ const char *get_wave_name(int wave)
 }
 
 /*
- * Process a sample with the low-pass filter
+ * Process a sample with the low-pass filter and the given cutoff
  * Returns the processed sample
  */
-double
-lp_process(lp_filter_t *filter, double input,
-           float cutoff)
+double lp_process(lp_filter_t *filter, double input,
+                float cutoff)
 {
     /* Clipping */
     if (cutoff > 1.0f)
+    {
         cutoff = 1.0f;
+    }
     if (cutoff < 0.0f)
+    {
         cutoff = 0.0f;
+    }
 
     /* Calculating the filter amplification */
     float frequency = cutoff * (RATE / 8.0f);
@@ -355,20 +427,44 @@ lp_process(lp_filter_t *filter, double input,
 voice_t *get_free_voice(synth_t *synth)
 {
     for (int i = 0; i < VOICES; i++)
-        if (!synth->voices[i].active)
+    {
+        if (!synth->arp && synth->voices[i].adsr->state == ENV_IDLE)
+        {
             return &synth->voices[i];
+        }
+        else if (synth->arp && !synth->voices[i].pressed)
+        {
+            return &synth->voices[i];
+        }
+    }
     return NULL;
 }
 
 /* Insertion sort algorithm for the voices of a synth_t, used for arpeggiator */
 void sort_synth_voices(synth_t *synth)
 {
+    /* First sort the voices */
     for (int v = 1; v < VOICES; v++)
     {
         voice_t current = synth->voices[v];
         int i = v - 1;
         
         while (i >= 0 && synth->voices[i].note > current.note)
+        {
+            synth->voices[i + 1] = synth->voices[i];
+            i--;
+        }
+
+        synth->voices[i + 1] = current;
+    }
+
+    /* Then move the voices with empty notes to the end */
+    for (int v = 1; v < VOICES; v++)
+    {
+        voice_t current = synth->voices[v];
+        int i = v - 1;
+        
+        while (i >= 0 && synth->voices[i].note == -1)
         {
             synth->voices[i + 1] = synth->voices[i];
             i--;
