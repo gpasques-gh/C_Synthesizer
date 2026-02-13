@@ -2,7 +2,7 @@
 #include "effects.h"
 
 /* Applies an amount of distortion onto a sound buffer */
-void distortion(short *buffer, float amount, bool overdriving)
+short distortion(short sample, float amount, bool overdriving)
 {
     if (amount > 1.0)
     {
@@ -25,18 +25,16 @@ void distortion(short *buffer, float amount, bool overdriving)
         clip = 32767 *  (1 - amount);
     }
 
-    for (int i = 0; i < FRAMES; i++)
+    if (sample > clip)
     {
-        if (buffer[i] > clip)
-        {
-            buffer[i] = clip;
-        }
-        else if (buffer[i] < -clip)
-        {
-            buffer[i] = -clip;
-        }
-
-        /* Gain to avoid silencing when amount is high */
-        buffer[i] *= 1.0 + (1.0 - clip / 32767.0); 
+        sample = clip;
     }
+    else if (sample < -clip)
+    {
+        sample = -clip;
+    }
+
+    /* Gain to avoid silencing when amount is high */
+    sample *= 1.0 + (1.0 - clip / 32767.0);  
+    return sample;   
 }
