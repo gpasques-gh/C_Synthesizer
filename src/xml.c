@@ -121,6 +121,12 @@ int save_preset(
         /* Amplification */
         snprintf(text_element, 1024, "%.2f", synth.amp);
         xmlNewChild(effects_node, NULL, BAD_CAST "amp", BAD_CAST text_element);
+        /* Arpeggio */
+        snprintf(text_element, 1024, "%d", synth.arp);
+        xmlNewChild(effects_node, NULL, BAD_CAST "arp", BAD_CAST text_element);
+        /* BPM */
+        snprintf(text_element, 1024, "%.2f", synth.bpm);
+        xmlNewChild(effects_node, NULL, BAD_CAST "bpm", BAD_CAST text_element);
         
         /* LFO*/
         lfo_node = xmlNewChild(effects_node, NULL, BAD_CAST "lfo", NULL);
@@ -147,12 +153,7 @@ int save_preset(
         xmlNewChild(distortion_node, NULL, BAD_CAST "amount", BAD_CAST text_element);
 
         /* Saving the XML document into the file */
-        int err = xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
-        if (err)
-        {
-            fprintf(stderr, "error while creating the XML file.\n");
-            return 1;
-        }
+        xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
         xmlFreeDoc(doc);
         xmlCleanupParser();
     }
@@ -182,7 +183,7 @@ int load_preset(
     const char *home = getenv("HOME");
     char zenity_command[1024] = "zenity --file-selection --filename '";
     strcat(zenity_command, home);
-    strcat(zenity_command, "/C_Synthesizer/presets/' --file-filter '*.xml'");
+    strcat(zenity_command, "/ALSA_raygui_Synthesizer/presets/' --file-filter '*.xml'");
 
     FILE *f = popen(zenity_command, "r");
     fgets(filename, 1024, f);
@@ -415,6 +416,50 @@ int load_preset(
                         amp_float = 0.0;
                     }
                     synth->amp = amp_float;
+                }
+                else if (child->type == XML_ELEMENT_NODE &&
+                        xmlStrcmp(child->name, BAD_CAST "arp") == 0)
+                {
+                    xmlChar *arp = xmlNodeGetContent(child);
+                    char *end_ptr = NULL;
+                    int arp_int = strtol((const char *)arp, &end_ptr, 10);
+                    if (end_ptr == (char *)arp)
+                    {
+                        fprintf(stderr, "bad arp value.\n");
+                        return 1;
+                    }
+
+                    if (arp_int > 1)
+                    {
+                        arp_int = 1;
+                    }
+                    else if (arp_int < 0)
+                    {
+                        arp_int = 0;
+                    }
+                    synth->arp = arp_int;
+                }
+                else if (child->type == XML_ELEMENT_NODE && 
+                        xmlStrcmp(child->name, BAD_CAST "bpm") == 0)
+                {
+                    xmlChar *bpm = xmlNodeGetContent(child);
+                    char *end_ptr = NULL;
+                    int bpm_float = strtof((const char *)bpm, &end_ptr);
+                    if (end_ptr == (char *)bpm)
+                    {
+                        fprintf(stderr, "bad bpm value.\n");
+                        return 1;
+                    }
+
+                    if (bpm_float > 250.0)
+                    {
+                        bpm_float = 250.0;
+                    }
+                    else if (bpm_float < 0.0)
+                    {
+                        bpm_float = 0.0;
+                    }
+                    synth->bpm = bpm_float;
                 }
                 /* LFO */
                 else if (child->type == XML_ELEMENT_NODE &&
