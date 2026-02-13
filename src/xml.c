@@ -226,398 +226,437 @@ int load_preset(
         else if (node->type == XML_ELEMENT_NODE &&
                  xmlStrcmp(node->name, BAD_CAST "filter") == 0)
         {
-            xmlNode *child = NULL;
-            /* Looping on the filter node children */
-            for (child = node->children; child; child = child->next)
-            {   /* Filter ADSR envelope */
-                if (child->type == XML_ELEMENT_NODE &&
-                    xmlStrcmp(child->name, BAD_CAST "filter_adsr") == 0)
-                {
-                    parse_adsr(
-                        child, synth, attack,
-                        decay, sustain, release, true);
-                }
-                /* Filter cutoff */
-                else if (child->type == XML_ELEMENT_NODE &&
-                         xmlStrcmp(child->name, BAD_CAST "cutoff") == 0)
-                {
-                    xmlChar *cutoff = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    float cutoff_float = strtof((const char *)cutoff, &end_ptr);
-                    if (end_ptr == (char *)cutoff)
-                    {
-                        fprintf(stderr, "bad cutoff value.\n");
-                        return 1;
-                    }
-
-                    if (cutoff_float > 1.0)
-                    {
-                        cutoff_float = 1.0;
-                    }
-                    else if (cutoff_float < 0.0)
-                    {
-                        cutoff_float = 0.0;
-                    }
-                    synth->filter->cutoff = cutoff_float;
-                }
-                /* Filter ADSR envelope ON/OFF */
-                else if (child->type == XML_ELEMENT_NODE &&
-                         xmlStrcmp(child->name, BAD_CAST "envelope_on") == 0)
-                {
-                    xmlChar *envelope_on = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    int env_on_int = strtol((const char *)envelope_on, &end_ptr, 10);
-                    if (end_ptr == (char *)envelope_on)
-                    {
-                        fprintf(stderr, "bad envelope value.\n");
-                        return 1;
-                    }
-
-                    if (env_on_int > 1)
-                    {
-                        env_on_int = 1;
-                    }
-                    else if (env_on_int < 0)
-                    {
-                        env_on_int = 0;
-                    }
-                    synth->filter->env = env_on_int;
-                }
-            }
+            parse_filter(node, synth);
         }
         /* Oscillators waveforms */
         else if (node->type == XML_ELEMENT_NODE &&
                  xmlStrcmp(node->name, BAD_CAST "oscillators") == 0)
         {
-            xmlNode *child = NULL;
-            /* Looping on the oscillators nodes*/
-            for (child = node->children; child; child = child->next)
-            {   /* Oscillator A */
-                if (child->type == XML_ELEMENT_NODE &&
-                    xmlStrcmp(child->name, BAD_CAST "osc_a") == 0)
-                {
-                    xmlChar *osc_a = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    short osc_a_wave = strtol((const char *)osc_a, &end_ptr, 10);
-                    if (end_ptr == (char *)osc_a)
-                    {
-                        fprintf(stderr, "bad osc a value.\n");
-                        return 1;
-                    }
-
-                    if (osc_a_wave > 4)
-                    {
-                        osc_a_wave = 4;
-                    }
-                    else if (osc_a_wave < 0)
-                    {
-                        osc_a_wave = 0;
-                    }
-                    *wave_a = osc_a_wave;
-                }
-                /* Oscillator B */
-                else if (child->type == XML_ELEMENT_NODE &&
-                         xmlStrcmp(child->name, BAD_CAST "osc_b") == 0)
-                {
-                    xmlChar *osc_b = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    short osc_b_wave = strtol((const char *)osc_b, &end_ptr, 10);
-                    if (end_ptr == (char *)osc_b)
-                    {
-                        fprintf(stderr, "bad osc b value.\n");
-                        return 1;
-                    }
-
-                    if (osc_b_wave > SAWTOOTH_WAVE)
-                    {
-                        osc_b_wave = SAWTOOTH_WAVE;
-                    }
-                    else if (osc_b_wave < SINE_WAVE)
-                    {
-                        osc_b_wave = SINE_WAVE;
-                    }
-                    *wave_b = osc_b_wave;
-                }
-                /* Oscillator C */
-                else if (child->type == XML_ELEMENT_NODE &&
-                         xmlStrcmp(child->name, BAD_CAST "osc_c") == 0)
-                {
-                    xmlChar *osc_c = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    short osc_c_wave = strtol((const char *)osc_c, &end_ptr, 10);
-                    if (end_ptr == (char *)osc_c)
-                    {
-                        fprintf(stderr, "bad osc b value.\n");
-                        return 1;
-                    }
-
-                    if (osc_c_wave > SAWTOOTH_WAVE)
-                    {
-                        osc_c_wave = SAWTOOTH_WAVE;
-                    }
-                    else if (osc_c_wave < SINE_WAVE)
-                    {
-                        osc_c_wave = SINE_WAVE;
-                    }
-                    *wave_c = osc_c_wave;
-                }
-            }
+            parse_oscillators(node, wave_a, wave_b, wave_c);
         }
         /* Effects */
         else if (node->type == XML_ELEMENT_NODE &&
                  xmlStrcmp(node->name, BAD_CAST "effects") == 0)
         {
-            xmlNode *child = NULL;
-            /* Looping on effects */
-            for (child = node->children; child; child = child->next)
+            parse_effects(node, synth, 
+                distortion, overdrive, distortion_amount);    
+        }
+    }
+
+    return 0;
+}
+
+int parse_effects(xmlNode *effects_node, synth_t *synth,
+        bool *distortion, bool *overdrive, float *distortion_amount)
+{
+    xmlNode *child = NULL;
+    /* Looping on effects */
+    for (child = effects_node->children; child; child = child->next)
+    {
+        /* Detune effect */
+        if (child->type == XML_ELEMENT_NODE &&
+            xmlStrcmp(child->name, BAD_CAST "detune") == 0)
+        {
+            xmlChar *detune = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            float detune_float = strtof((const char *)detune, &end_ptr);
+            if (end_ptr == (char *)detune)
             {
-                /* Detune effect */
-                if (child->type == XML_ELEMENT_NODE &&
-                    xmlStrcmp(child->name, BAD_CAST "detune") == 0)
-                {
-                    xmlChar *detune = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    float detune_float = strtof((const char *)detune, &end_ptr);
-                    if (end_ptr == (char *)detune)
-                    {
-                        fprintf(stderr, "bad cutoff value.\n");
-                        return 1;
-                    }
-
-                    if (detune_float > 1.0)
-                    {
-                        detune_float = 1.0;
-                    }
-                    else if (detune_float < 0.0)
-                    {
-                        detune_float = 0.0;
-                    }
-                    synth->detune = detune_float;
-                }
-                /* Amplification */
-                else if (child->type == XML_ELEMENT_NODE &&
-                         xmlStrcmp(child->name, BAD_CAST "amp") == 0)
-                {
-                    xmlChar *amp = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    float amp_float = strtof((const char *)amp, &end_ptr);
-                    if (end_ptr == (char *)amp)
-                    {
-                        fprintf(stderr, "bad cutoff value.\n");
-                        return 1;
-                    }
-
-                    if (amp_float > 1.0)
-                    {
-                        amp_float = 1.0;                        
-                    }
-                    else if (amp_float < 0.0)
-                    {
-                        amp_float = 0.0;
-                    }
-                    synth->amp = amp_float;
-                }
-                else if (child->type == XML_ELEMENT_NODE &&
-                        xmlStrcmp(child->name, BAD_CAST "arp") == 0)
-                {
-                    xmlChar *arp = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    int arp_int = strtol((const char *)arp, &end_ptr, 10);
-                    if (end_ptr == (char *)arp)
-                    {
-                        fprintf(stderr, "bad arp value.\n");
-                        return 1;
-                    }
-
-                    if (arp_int > 1)
-                    {
-                        arp_int = 1;
-                    }
-                    else if (arp_int < 0)
-                    {
-                        arp_int = 0;
-                    }
-                    synth->arp = arp_int;
-                }
-                else if (child->type == XML_ELEMENT_NODE && 
-                        xmlStrcmp(child->name, BAD_CAST "bpm") == 0)
-                {
-                    xmlChar *bpm = xmlNodeGetContent(child);
-                    char *end_ptr = NULL;
-                    int bpm_float = strtof((const char *)bpm, &end_ptr);
-                    if (end_ptr == (char *)bpm)
-                    {
-                        fprintf(stderr, "bad bpm value.\n");
-                        return 1;
-                    }
-
-                    if (bpm_float > 250.0)
-                    {
-                        bpm_float = 250.0;
-                    }
-                    else if (bpm_float < 0.0)
-                    {
-                        bpm_float = 0.0;
-                    }
-                    synth->bpm = bpm_float;
-                }
-                /* LFO */
-                else if (child->type == XML_ELEMENT_NODE &&
-                        xmlStrcmp(child->name, BAD_CAST "lfo") == 0)
-                {
-                    xmlNode *lfo_child = NULL;
-                    
-                    for (lfo_child = child->children; lfo_child; lfo_child = lfo_child->next)
-                    {
-                        /* LFO waveform*/
-                        if (lfo_child->type == XML_ELEMENT_NODE &&
-                            xmlStrcmp(lfo_child->name, BAD_CAST "lfo_wave") == 0)
-                        {
-                            xmlChar *lfo_wave = xmlNodeGetContent(lfo_child);
-                            char *end_ptr = NULL;
-                            int lfo_wave_int = strtol((const char *)lfo_wave, &end_ptr, 10);
-                            if (end_ptr == (char *)lfo_wave)
-                            {
-                                fprintf(stderr, "bad lfo waveform value.\n");
-                                return 1;
-                            }
-
-                            if (lfo_wave_int > SAWTOOTH_WAVE)
-                            {
-                                lfo_wave_int = SAWTOOTH_WAVE;
-                            }
-                            else if (lfo_wave_int < SINE_WAVE)
-                            {
-                                lfo_wave_int = SINE_WAVE;
-                            }
-                            *synth->lfo->osc->wave = lfo_wave_int;
-                        }
-                        else if (lfo_child->type == XML_ELEMENT_NODE &&
-                                xmlStrcmp(lfo_child->name, BAD_CAST "lfo_freq") == 0)
-                        {
-                            xmlChar *lfo_freq = xmlNodeGetContent(lfo_child);
-                            char *end_ptr = NULL;
-                            float lfo_freq_float = strtof((const char *)lfo_freq, &end_ptr);
-                            if (end_ptr == (char *)lfo_freq)
-                            {
-                                fprintf(stderr, "bad lfo frequency value.\n");
-                                return 1;
-                            }
-
-                            if (lfo_freq_float > 1.0)
-                            {
-                                lfo_freq_float = 1.0;
-                            }
-                            else if (lfo_freq_float < 0.0)
-                            {
-                                lfo_freq_float = 0.0;
-                            }
-                            synth->lfo->osc->freq = lfo_freq_float;
-                        }
-                        else if (lfo_child->type == XML_ELEMENT_NODE &&
-                                xmlStrcmp(lfo_child->name, BAD_CAST "lfo_param") == 0)
-                        {
-                            xmlChar *lfo_param = xmlNodeGetContent(lfo_child);
-                            char *end_ptr = NULL;
-                            int lfo_param_int = strtol((const char *)lfo_param, &end_ptr, 10);
-                            if (end_ptr == (char *)lfo_param)
-                            {
-                                fprintf(stderr, "bad lfo param value.\n");
-                                return 1;
-                            }
-
-                            if (lfo_param_int > LFO_AMP)
-                            {
-                                lfo_param_int = LFO_AMP;
-                            }
-                            else if (lfo_param_int < LFO_OFF)
-                            {
-                                lfo_param_int = LFO_OFF;
-                            }
-                            synth->lfo->mod_param = lfo_param_int;
-                        }
-                    }
-                }
-                /* Distortion */
-                else if (child->type == XML_ELEMENT_NODE &&
-                        xmlStrcmp(child->name, BAD_CAST "distortion") == 0)
-                {
-                    xmlNode *dist_child = NULL;
-
-                    for (dist_child = child->children; dist_child; dist_child = dist_child->next)
-                    {
-                        /* Distortion ON/OFF */
-                        if (dist_child->type == XML_ELEMENT_NODE &&
-                            xmlStrcmp(dist_child->name, BAD_CAST "dist_on_off") == 0)
-                        {
-                            xmlChar *dist_on_off = xmlNodeGetContent(dist_child);
-                            char *end_ptr = NULL;
-                            int dist_bool = strtol((const char *)dist_on_off, &end_ptr, 10);
-                            if (end_ptr == (char *)dist_on_off)
-                            {
-                                fprintf(stderr, "bad distortion on/off value.\n");
-                                return 1;
-                            }
-
-                            if (dist_bool > 1)
-                            {
-                                dist_bool = 1;
-                            }
-                            else if (dist_bool < 0)
-                            {
-                                dist_bool = 0;
-                            }
-                            *distortion = dist_bool;
-                        }
-                        /* Overdrive ON/OFF */
-                        else if (dist_child->type == XML_ELEMENT_NODE &&
-                            xmlStrcmp(dist_child->name, BAD_CAST "od_on_off") == 0)
-                        {
-                            xmlChar *od_on_off = xmlNodeGetContent(dist_child);
-                            char *end_ptr = NULL;
-                            int od_bool = strtol((const char *)od_on_off, &end_ptr, 10);
-                            if (end_ptr == (char *)od_on_off)
-                            {
-                                fprintf(stderr, "bad overdrive on/off value.\n");
-                                return 1;
-                            }
-
-                            if (od_bool > 1)
-                            {
-                                od_bool = 1;
-                            }
-                            else if (od_bool < 0)
-                            {
-                                od_bool = 0;
-                            }
-                            *overdrive = od_bool;
-                        }
-                        /* Distortion amount */
-                        else if (dist_child->type == XML_ELEMENT_NODE &&
-                            xmlStrcmp(dist_child->name, BAD_CAST "amount") == 0)
-                        {
-                            xmlChar *dist_amount = xmlNodeGetContent(dist_child);
-                            char *end_ptr = NULL;
-                            float dist_amount_float = strtof((const char *)dist_amount, &end_ptr);
-                            if (end_ptr == (char *)dist_amount)
-                            {
-                                fprintf(stderr, "bad distortion amount value.\n");
-                                return 1;
-                            }
-
-                            if (dist_amount_float > 1.0)
-                            {
-                                dist_amount_float = 1.0;
-                            }
-                            else if (dist_amount_float < 0.0)
-                            {
-                                dist_amount_float = 0.0;
-                            }
-                            *distortion_amount = dist_amount_float;
-                        }
-                    }
-                }
+                fprintf(stderr, "bad cutoff value.\n");
+                return 1;
             }
+
+            if (detune_float > 1.0)
+            {
+                detune_float = 1.0;
+            }
+            else if (detune_float < 0.0)
+            {
+                detune_float = 0.0;
+            }
+            synth->detune = detune_float;
+        }
+        /* Amplification */
+        else if (child->type == XML_ELEMENT_NODE &&
+                    xmlStrcmp(child->name, BAD_CAST "amp") == 0)
+        {
+            xmlChar *amp = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            float amp_float = strtof((const char *)amp, &end_ptr);
+            if (end_ptr == (char *)amp)
+            {
+                fprintf(stderr, "bad cutoff value.\n");
+                return 1;
+            }
+
+            if (amp_float > 1.0)
+            {
+                amp_float = 1.0;                        
+            }
+            else if (amp_float < 0.0)
+            {
+                amp_float = 0.0;
+            }
+            synth->amp = amp_float;
+        }
+        else if (child->type == XML_ELEMENT_NODE &&
+                xmlStrcmp(child->name, BAD_CAST "arp") == 0)
+        {
+            xmlChar *arp = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            int arp_int = strtol((const char *)arp, &end_ptr, 10);
+            if (end_ptr == (char *)arp)
+            {
+                fprintf(stderr, "bad arp value.\n");
+                return 1;
+            }
+
+            if (arp_int > 1)
+            {
+                arp_int = 1;
+            }
+            else if (arp_int < 0)
+            {
+                arp_int = 0;
+            }
+            synth->arp = arp_int;
+        }
+        else if (child->type == XML_ELEMENT_NODE && 
+                xmlStrcmp(child->name, BAD_CAST "bpm") == 0)
+        {
+            xmlChar *bpm = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            int bpm_float = strtof((const char *)bpm, &end_ptr);
+            if (end_ptr == (char *)bpm)
+            {
+                fprintf(stderr, "bad bpm value.\n");
+                return 1;
+            }
+
+            if (bpm_float > 250.0)
+            {
+                bpm_float = 250.0;
+            }
+            else if (bpm_float < 0.0)
+            {
+                bpm_float = 0.0;
+            }
+            synth->bpm = bpm_float;
+        }
+        /* LFO */
+        else if (child->type == XML_ELEMENT_NODE &&
+                xmlStrcmp(child->name, BAD_CAST "lfo") == 0)
+        {
+            parse_lfo(child, synth);
+        }
+        /* Distortion */
+        else if (child->type == XML_ELEMENT_NODE &&
+                xmlStrcmp(child->name, BAD_CAST "distortion") == 0)
+        {
+            parse_distortion(child, distortion,
+                overdrive, distortion_amount);
+        }
+    }
+    return 0;
+}
+
+int parse_filter(xmlNode *filter_node, 
+                synth_t *synth)
+{
+    xmlNode *child = NULL;
+
+    /* Looping on the filter node children */
+    for (child = filter_node->children; child; child = child->next)
+    {   /* Filter ADSR envelope */
+        if (child->type == XML_ELEMENT_NODE &&
+            xmlStrcmp(child->name, BAD_CAST "filter_adsr") == 0)
+        {
+            parse_adsr(
+                child, synth, NULL,
+                NULL, NULL, NULL, true);
+        }
+        /* Filter cutoff */
+        else if (child->type == XML_ELEMENT_NODE &&
+                    xmlStrcmp(child->name, BAD_CAST "cutoff") == 0)
+        {
+            xmlChar *cutoff = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            float cutoff_float = strtof((const char *)cutoff, &end_ptr);
+            if (end_ptr == (char *)cutoff)
+            {
+                fprintf(stderr, "bad cutoff value.\n");
+                return 1;
+            }
+
+            if (cutoff_float > 1.0)
+            {
+                cutoff_float = 1.0;
+            }
+            else if (cutoff_float < 0.0)
+            {
+                cutoff_float = 0.0;
+            }
+            synth->filter->cutoff = cutoff_float;
+        }
+        /* Filter ADSR envelope ON/OFF */
+        else if (child->type == XML_ELEMENT_NODE &&
+                    xmlStrcmp(child->name, BAD_CAST "envelope_on") == 0)
+        {
+            xmlChar *envelope_on = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            int env_on_int = strtol((const char *)envelope_on, &end_ptr, 10);
+            if (end_ptr == (char *)envelope_on)
+            {
+                fprintf(stderr, "bad envelope value.\n");
+                return 1;
+            }
+
+            if (env_on_int > 1)
+            {
+                env_on_int = 1;
+            }
+            else if (env_on_int < 0)
+            {
+                env_on_int = 0;
+            }
+            synth->filter->env = env_on_int;
+        }
+    }
+    return 0;
+}
+
+int parse_oscillators(xmlNode *lfo_node, 
+    int *wave_a, int *wave_b, int *wave_c)
+{
+    xmlNode *child = NULL;
+    /* Looping on the oscillators nodes*/
+    for (child = lfo_node->children; child; child = child->next)
+    {   /* Oscillator A */
+        if (child->type == XML_ELEMENT_NODE &&
+            xmlStrcmp(child->name, BAD_CAST "osc_a") == 0)
+        {
+            xmlChar *osc_a = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            short osc_a_wave = strtol((const char *)osc_a, &end_ptr, 10);
+            if (end_ptr == (char *)osc_a)
+            {
+                fprintf(stderr, "bad osc a value.\n");
+                return 1;
+            }
+
+            if (osc_a_wave > 4)
+            {
+                osc_a_wave = 4;
+            }
+            else if (osc_a_wave < 0)
+            {
+                osc_a_wave = 0;
+            }
+            *wave_a = osc_a_wave;
+        }
+        /* Oscillator B */
+        else if (child->type == XML_ELEMENT_NODE &&
+                    xmlStrcmp(child->name, BAD_CAST "osc_b") == 0)
+        {
+            xmlChar *osc_b = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            short osc_b_wave = strtol((const char *)osc_b, &end_ptr, 10);
+            if (end_ptr == (char *)osc_b)
+            {
+                fprintf(stderr, "bad osc b value.\n");
+                return 1;
+            }
+
+            if (osc_b_wave > SAWTOOTH_WAVE)
+            {
+                osc_b_wave = SAWTOOTH_WAVE;
+            }
+            else if (osc_b_wave < SINE_WAVE)
+            {
+                osc_b_wave = SINE_WAVE;
+            }
+            *wave_b = osc_b_wave;
+        }
+        /* Oscillator C */
+        else if (child->type == XML_ELEMENT_NODE &&
+                    xmlStrcmp(child->name, BAD_CAST "osc_c") == 0)
+        {
+            xmlChar *osc_c = xmlNodeGetContent(child);
+            char *end_ptr = NULL;
+            short osc_c_wave = strtol((const char *)osc_c, &end_ptr, 10);
+            if (end_ptr == (char *)osc_c)
+            {
+                fprintf(stderr, "bad osc b value.\n");
+                return 1;
+            }
+
+            if (osc_c_wave > SAWTOOTH_WAVE)
+            {
+                osc_c_wave = SAWTOOTH_WAVE;
+            }
+            else if (osc_c_wave < SINE_WAVE)
+            {
+                osc_c_wave = SINE_WAVE;
+            }
+            *wave_c = osc_c_wave;
+        }
+    }
+    return 0;
+}
+
+int parse_lfo(xmlNode *lfo_node, synth_t *synth)
+{
+    xmlNode *lfo_child = NULL;
+                    
+    for (lfo_child = lfo_node->children; lfo_child; lfo_child = lfo_child->next)
+    {
+        /* LFO waveform*/
+        if (lfo_child->type == XML_ELEMENT_NODE &&
+            xmlStrcmp(lfo_child->name, BAD_CAST "lfo_wave") == 0)
+        {
+            xmlChar *lfo_wave = xmlNodeGetContent(lfo_child);
+            char *end_ptr = NULL;
+            int lfo_wave_int = strtol((const char *)lfo_wave, &end_ptr, 10);
+            if (end_ptr == (char *)lfo_wave)
+            {
+                fprintf(stderr, "bad lfo waveform value.\n");
+                return 1;
+            }
+
+            if (lfo_wave_int > SAWTOOTH_WAVE)
+            {
+                lfo_wave_int = SAWTOOTH_WAVE;
+            }
+            else if (lfo_wave_int < SINE_WAVE)
+            {
+                lfo_wave_int = SINE_WAVE;
+            }
+            *synth->lfo->osc->wave = lfo_wave_int;
+        }
+        else if (lfo_child->type == XML_ELEMENT_NODE &&
+                xmlStrcmp(lfo_child->name, BAD_CAST "lfo_freq") == 0)
+        {
+            xmlChar *lfo_freq = xmlNodeGetContent(lfo_child);
+            char *end_ptr = NULL;
+            float lfo_freq_float = strtof((const char *)lfo_freq, &end_ptr);
+            if (end_ptr == (char *)lfo_freq)
+            {
+                fprintf(stderr, "bad lfo frequency value.\n");
+                return 1;
+            }
+
+            if (lfo_freq_float > 1.0)
+            {
+                lfo_freq_float = 1.0;
+            }
+            else if (lfo_freq_float < 0.0)
+            {
+                lfo_freq_float = 0.0;
+            }
+            synth->lfo->osc->freq = lfo_freq_float;
+        }
+        else if (lfo_child->type == XML_ELEMENT_NODE &&
+                xmlStrcmp(lfo_child->name, BAD_CAST "lfo_param") == 0)
+        {
+            xmlChar *lfo_param = xmlNodeGetContent(lfo_child);
+            char *end_ptr = NULL;
+            int lfo_param_int = strtol((const char *)lfo_param, &end_ptr, 10);
+            if (end_ptr == (char *)lfo_param)
+            {
+                fprintf(stderr, "bad lfo param value.\n");
+                return 1;
+            }
+
+            if (lfo_param_int > LFO_AMP)
+            {
+                lfo_param_int = LFO_AMP;
+            }
+            else if (lfo_param_int < LFO_OFF)
+            {
+                lfo_param_int = LFO_OFF;
+            }
+            synth->lfo->mod_param = lfo_param_int;
+        }
+    }
+    return 0;
+}
+
+
+int parse_distortion(xmlNode *distortion_node, 
+    bool *distortion, bool *overdrive, float *distortion_amount)
+{
+    xmlNode *dist_child = NULL;
+
+    for (dist_child = distortion_node->children; dist_child; dist_child = dist_child->next)
+    {
+        /* Distortion ON/OFF */
+        if (dist_child->type == XML_ELEMENT_NODE &&
+            xmlStrcmp(dist_child->name, BAD_CAST "dist_on_off") == 0)
+        {
+            xmlChar *dist_on_off = xmlNodeGetContent(dist_child);
+            char *end_ptr = NULL;
+            int dist_bool = strtol((const char *)dist_on_off, &end_ptr, 10);
+            if (end_ptr == (char *)dist_on_off)
+            {
+                fprintf(stderr, "bad distortion on/off value.\n");
+                return 1;
+            }
+
+            if (dist_bool > 1)
+            {
+                dist_bool = 1;
+            }
+            else if (dist_bool < 0)
+            {
+                dist_bool = 0;
+            }
+            *distortion = dist_bool;
+        }
+        /* Overdrive ON/OFF */
+        else if (dist_child->type == XML_ELEMENT_NODE &&
+            xmlStrcmp(dist_child->name, BAD_CAST "od_on_off") == 0)
+        {
+            xmlChar *od_on_off = xmlNodeGetContent(dist_child);
+            char *end_ptr = NULL;
+            int od_bool = strtol((const char *)od_on_off, &end_ptr, 10);
+            if (end_ptr == (char *)od_on_off)
+            {
+                fprintf(stderr, "bad overdrive on/off value.\n");
+                return 1;
+            }
+
+            if (od_bool > 1)
+            {
+                od_bool = 1;
+            }
+            else if (od_bool < 0)
+            {
+                od_bool = 0;
+            }
+            *overdrive = od_bool;
+        }
+        /* Distortion amount */
+        else if (dist_child->type == XML_ELEMENT_NODE &&
+            xmlStrcmp(dist_child->name, BAD_CAST "amount") == 0)
+        {
+            xmlChar *dist_amount = xmlNodeGetContent(dist_child);
+            char *end_ptr = NULL;
+            float dist_amount_float = strtof((const char *)dist_amount, &end_ptr);
+            if (end_ptr == (char *)dist_amount)
+            {
+                fprintf(stderr, "bad distortion amount value.\n");
+                return 1;
+            }
+
+            if (dist_amount_float > 1.0)
+            {
+                dist_amount_float = 1.0;
+            }
+            else if (dist_amount_float < 0.0)
+            {
+                dist_amount_float = 0.0;
+            }
+            *distortion_amount = dist_amount_float;
         }
     }
     return 0;
